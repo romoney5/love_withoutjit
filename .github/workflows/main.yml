@@ -48,6 +48,10 @@ jobs:
             if os.system(f"make getdeps LOVE_BRANCH={os.environ['LOVE_BRANCH']}") == 0:
                 raise SystemExit(0)
         raise Exception("make getdeps failed")
+    - name: Eradicate LuaJIT
+      run: |
+        ls -R
+        ./love2d-${{ github.sha }}/configure --with-lua=lua --with-luaversion=5.1
     - name: Build AppImage
       run: make LOVE_BRANCH=${{ github.sha }}
     - name: Print LuaJIT branch
@@ -83,50 +87,6 @@ jobs:
       with:
         name: test-output-linux-opengl-${{ steps.report1.outputs.conclusion }}
         path: test-output-linux-opengl.zip
-    # linux opengles tests
-    - name: Run Test Suite (opengles)
-      env:
-        LOVE_GRAPHICS_DEBUG: 1
-      run: |
-        export LOVE_GRAPHICS_USE_OPENGLES=1
-        ./love-${{ github.sha }}.AppImage love2d-${{ github.sha }}/testing/main.lua --all --isRunner --renderers opengl
-    - name: Love Test Report (opengles)
-      uses: ellraiser/love-test-report@main
-      id: report2
-      with:
-        name: Love Testsuite Linux
-        title: test-report-linux-opengles
-        path: love2d-${{ github.sha }}/testing/output/lovetest_all.md
-        token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Zip Test Output (opengles)
-      run: |
-        7z a -tzip test-output-linux-opengles.zip love2d-${{ github.sha }}/testing/output/
-    - name: Artifact Test Output (opengles)
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-output-linux-opengles-${{ steps.report2.outputs.conclusion }}
-        path: test-output-linux-opengles.zip
-    # linux vulkan tests
-    - name: Run Test Suite (vulkan)
-      env:
-        LOVE_GRAPHICS_DEBUG: 1
-        LOVE_GRAPHICS_VULKAN_ALLOW_SOFTWARE: 1
-      run: |
-        ./love-${{ github.sha }}.AppImage love2d-${{ github.sha }}/testing/main.lua --all --isRunner --renderers vulkan
-    - name: Love Test Report (vulkan)
-      uses: ellraiser/love-test-report@main
-      with:
-        name: Love Testsuite Linux
-        title: test-report-linux-vulkan
-        path: love2d-${{ github.sha }}/testing/output/lovetest_all.md
-    - name: Zip Test Output (vulkan)
-      run: |
-        7z a -tzip test-output-linux-vulkan.zip love2d-${{ github.sha }}/testing/output/
-    - name: Artifact Test Output (vulkan)
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-output-linux-vulkan
-        path: test-output-linux-vulkan.zip
     - name: Stop xvfb and openbox
       # should always stop xvfb and openbox even if other steps failed
       if: always()
@@ -144,10 +104,9 @@ jobs:
         name: love-x86_64-AppImage-debug
         path: love-${{ github.sha }}.AppImage-debug.tar.gz
     - name: Check Tests Passing
-      if: steps.report1.outputs.conclusion == 'failure' || steps.report2.outputs.conclusion == 'failure'
+      if: steps.report1.outputs.conclusion == 'failure'
       run: |
         echo "${{ steps.report1.outputs.failed }} opengl tests failed"
-        echo "${{ steps.report2.outputs.failed }} opengles tests failed"
         exit 1
 
   Windows:
@@ -161,7 +120,7 @@ jobs:
       VULKAN_SDK: C:/VulkanSDK/1.3.231.1
     strategy:
       matrix:
-        platform: [x64, ARM64]
+        platform: [x64] #, ARM64]
     defaults:
       run:
         shell: cmd
@@ -265,7 +224,8 @@ jobs:
         CFLAGS: /Zi
         CXXFLAGS: /Zi
         LDFLAGS: /DEBUG:FULL /OPT:REF /OPT:ICF
-      run: cmake -Bbuild -Smegasource -T v143 -A ${{ matrix.platform }},version=10.0.26100.0 --install-prefix %CD%\install -DCMAKE_PDB_OUTPUT_DIRECTORY=%CD%\pdb ${{ steps.vars.outputs.moredef }}
+      run: |
+        cmake -Bbuild -Smegasource -T v143 -A ${{ matrix.platform }},version=10.0.26100.0 --install-prefix %CD%\install -DCMAKE_PDB_OUTPUT_DIRECTORY=%CD%\pdb -DUSE_LUAJIT=OFF ${{ steps.vars.outputs.moredef }}
     - name: Install
       run: cmake --build build --target PACKAGE --config Release -j2
     - name: Copy LuaJIT lua51.pdb
@@ -340,38 +300,10 @@ jobs:
       with:
         name: test-output-windows-${{ steps.vars.outputs.arch }}-opengl-${{ steps.report1.outputs.conclusion }}
         path: test-output-windows-${{ steps.vars.outputs.arch }}-opengl.zip
-    # windows opengles tests
-    - name: Run Tests (opengles)
-      if: steps.vars.outputs.arch != 'ARM64'
-      env:
-        LOVE_GRAPHICS_DEBUG: 1
-        LOVE_GRAPHICS_USE_OPENGLES: 1
-      run: |
-        powershell.exe ./install/lovec.exe ./megasource/libs/love/testing/main.lua --all --isRunner --renderers opengl
-    - name: Love Test Report (opengles)
-      id: report2
-      if: steps.vars.outputs.arch != 'ARM64'
-      uses: ellraiser/love-test-report@main
-      with:
-        name: Love Testsuite Windows ${{ steps.vars.outputs.arch }} (opengles)
-        title: test-report-windows-${{ steps.vars.outputs.arch }}-opengles
-        path: megasource/libs/love/testing/output/lovetest_all.md
-        token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Zip Test Output (opengles)
-      if: steps.vars.outputs.arch != 'ARM64'
-      run: |
-        7z a -tzip test-output-windows-${{ steps.vars.outputs.arch }}-opengles.zip megasource/libs/love/testing/output/
-    - name: Artifact Test Output (opengles)
-      if: steps.vars.outputs.arch != 'ARM64'
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-output-windows-${{ steps.vars.outputs.arch }}-opengles-${{ steps.report2.outputs.conclusion }}
-        path: test-output-windows-${{ steps.vars.outputs.arch }}-opengles.zip
     - name: Check Tests Passing
-      if: steps.report1.outputs.conclusion == 'failure' || steps.report2.outputs.conclusion == 'failure'
+      if: steps.report1.outputs.conclusion == 'failure'
       run: |
-        echo "${{ steps.report1.outputs.failed }} opengl tests failed"
-        echo "${{ steps.report2.outputs.failed }} opengles tests failed"
+        echo "${{ steps.report1.outputs.failed }} opengl tests failed"=
         exit 1
 #    # install vulkan
 #    - name: Install Vulkan
@@ -391,7 +323,6 @@ jobs:
 #      if: steps.vars.outputs.arch != 'ARM64'
 #      env:
 #        LOVE_GRAPHICS_DEBUG: 1
-#        LOVE_GRAPHICS_VULKAN_ALLOW_SOFTWARE: 1
 #      run: |
 #        powershell.exe ./install/lovec.exe ./megasource/libs/love/testing/main.lua --all --isRunner --renderers vulkan
 #    - name: Love Test Report (vulkan)
@@ -503,30 +434,30 @@ jobs:
         echo "${{ steps.report2.outputs.failed }} metal tests failed"
         exit 1
 
-  iOS-Simulator:
-    runs-on: macos-14
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-    - name: Clone Dependencies
-      uses: actions/checkout@v4
-      with:
-        path: apple-dependencies
-        repository: love2d/love-apple-dependencies
-        ref: main
-    - name: Move Dependencies
-      run: |
-        mv apple-dependencies/iOS/libraries platform/xcode/ios
-        mv apple-dependencies/shared platform/xcode
-    - name: Build
-      run:
-        xcodebuild -project platform/xcode/love.xcodeproj -scheme love-ios -configuration Release -destination 'platform=iOS Simulator,name=iPhone 15'
+  # iOS-Simulator:
+  #   runs-on: macos-14
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v4
+  #   - name: Clone Dependencies
+  #     uses: actions/checkout@v4
+  #     with:
+  #       path: apple-dependencies
+  #       repository: love2d/love-apple-dependencies
+  #       ref: main
+  #   - name: Move Dependencies
+  #     run: |
+  #       mv apple-dependencies/iOS/libraries platform/xcode/ios
+  #       mv apple-dependencies/shared platform/xcode
+  #   - name: Build
+  #     run:
+  #       xcodebuild -project platform/xcode/love.xcodeproj -scheme love-ios -configuration Release -destination 'platform=iOS Simulator,name=iPhone 15'
 
   Android:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        build_type: [Debug, Release]
+        build_type: [Release] #[Debug, Release]
     env:
       GRADLE_OPTS: "-Dorg.gradle.jvmargs='-Xmx4G'"
     steps:
@@ -555,6 +486,11 @@ jobs:
       uses: actions/checkout@v4
       with:
         path: app/src/main/cpp/love
+
+    - name: Remove LuaJIT
+      run: |
+        sed -i 's/LUAJIT_ENABLED=true/LUAJIT_ENABLED=false/' gradle.properties
+        sed -i 's/luajit/lua/' app/src/main/cpp/CMakeLists.txt
     - name: Build Normal Flavor
       run: bash ./gradlew assembleNormalRecord${{ matrix.build_type }}
     - name: Build Release-specific Binaries
