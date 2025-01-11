@@ -85,7 +85,7 @@ endif()
 if(APPLE)
 	set(LOVE_DEFAULT_JIT FALSE)
 else()
-	set(LOVE_DEFAULT_JIT TRUE)
+	set(LOVE_DEFAULT_JIT FALSE)
 endif()
 
 option(LOVE_JIT "Use LuaJIT" ${LOVE_DEFAULT_JIT})
