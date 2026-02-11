@@ -191,6 +191,12 @@ void Shape::setRestitution(float restitution)
 	fixture->SetRestitution(restitution);
 }
 
+void Shape::setRestitutionThreshold(float threshold)
+{
+	throwIfFixtureNotValid();
+	fixture->SetRestitutionThreshold(threshold);
+}
+
 void Shape::setDensity(float density)
 {
 	throwIfFixtureNotValid();
@@ -215,6 +221,12 @@ float Shape::getRestitution() const
 {
 	throwIfFixtureNotValid();
 	return fixture->GetRestitution();
+}
+
+float Shape::getRestitutionThreshold() const
+{
+	throwIfFixtureNotValid();
+	return fixture->GetRestitutionThreshold();
 }
 
 float Shape::getDensity() const

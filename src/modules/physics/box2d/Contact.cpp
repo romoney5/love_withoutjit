@@ -92,6 +92,11 @@ float Contact::getRestitution() const
 	return contact->GetRestitution();
 }
 
+float Contact::getRestitutionThreshold() const
+{
+	return contact->GetRestitutionThreshold();
+}
+
 bool Contact::isEnabled() const
 {
 	return contact->IsEnabled();
@@ -112,6 +117,11 @@ void Contact::setRestitution(float restitution)
 	contact->SetRestitution(restitution);
 }
 
+void Contact::setRestitutionThreshold(float threshold)
+{
+	contact->SetRestitutionThreshold(threshold);
+}
+
 void Contact::setEnabled(bool enabled)
 {
 	contact->SetEnabled(enabled);
@@ -125,6 +135,11 @@ void Contact::resetFriction()
 void Contact::resetRestitution()
 {
 	contact->ResetRestitution();
+}
+
+void Contact::resetRestitutionThreshold()
+{
+	contact->ResetRestitutionThreshold();
 }
 
 void Contact::setTangentSpeed(float speed)

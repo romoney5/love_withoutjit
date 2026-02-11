@@ -100,6 +100,12 @@ public:
 	float getRestitution() const;
 
 	/**
+	 * The mixed restitution threshold of the two
+	 * fixtures at the point of impact.
+	 **/
+	float getRestitutionThreshold() const;
+
+	/**
 	 * Check if the contact is enabled.
 	 **/
 	bool isEnabled() const;
@@ -122,6 +128,11 @@ public:
 	void setRestitution(float restitution);
 
 	/**
+	 * Override the default restitution threshold mixture.
+	 **/
+	void setRestitutionThreshold(float threshold);
+
+	/**
 	 * Enable/disable this contact.
 	 **/
 	void setEnabled(bool enabled);
@@ -137,6 +148,12 @@ public:
 	 * value.
 	 **/
 	void resetRestitution();
+
+	/**
+	 * Reset the restitution threshold mixture to the
+	 * default value.
+	 **/
+	void resetRestitutionThreshold();
 
 	/**
 	 * Set the desired tangent speed.

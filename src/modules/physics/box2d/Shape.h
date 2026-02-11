@@ -119,6 +119,11 @@ public:
 	void setRestitution(float restitution);
 
 	/**
+	 * Sets the restitution threshold of the Shape.
+	 **/
+	void setRestitutionThreshold(float threshold);
+
+	/**
 	 * Sets the density of the Shape.
 	 **/
 	void setDensity(float density);
@@ -132,6 +137,11 @@ public:
 	 * Gets the restitution of the Shape.
 	 **/
 	float getRestitution() const;
+
+	/**
+	 * Gets the restitution threshold of the Shape.
+	 **/
+	float getRestitutionThreshold() const;
 
 	/**
 	 * Gets the density of the Shape.
