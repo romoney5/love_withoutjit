@@ -105,6 +105,14 @@ int w_Shape_setRestitution(lua_State *L)
 	return 0;
 }
 
+int w_Shape_setRestitutionThreshold(lua_State *L)
+{
+	Shape *t = luax_checkshape(L, 1);
+	float arg1 = (float)luaL_checknumber(L, 2);
+	luax_catchexcept(L, [&]() { t->setRestitutionThreshold(arg1); });
+	return 0;
+}
+
 int w_Shape_setDensity(lua_State *L)
 {
 	Shape *t = luax_checkshape(L, 1);
@@ -136,6 +144,15 @@ int w_Shape_getRestitution(lua_State *L)
 	float r = 0;
 	luax_catchexcept(L, [&]() { r = t->getRestitution(); });
 	lua_pushnumber(L, r);
+	return 1;
+}
+
+int w_Shape_getRestitutionThreshold(lua_State *L)
+{
+	Shape *t = luax_checkshape(L, 1);
+	float threshold = 0;
+	luax_catchexcept(L, [&]() { threshold = t->getRestitutionThreshold(); });
+	lua_pushnumber(L, threshold);
 	return 1;
 }
 
@@ -355,10 +372,12 @@ const luaL_Reg w_Shape_functions[] =
 	{ "getChildCount", w_Shape_getChildCount },
 	{ "setFriction", w_Shape_setFriction },
 	{ "setRestitution", w_Shape_setRestitution },
+	{ "setRestitutionThreshold", w_Shape_setRestitutionThreshold },
 	{ "setDensity", w_Shape_setDensity },
 	{ "setSensor", w_Shape_setSensor },
 	{ "getFriction", w_Shape_getFriction },
 	{ "getRestitution", w_Shape_getRestitution },
+	{ "getRestitutionThreshold", w_Shape_getRestitutionThreshold },
 	{ "getDensity", w_Shape_getDensity },
 	{ "getBody", w_Shape_getBody },
 	{ "getShape", w_Shape_getShape },

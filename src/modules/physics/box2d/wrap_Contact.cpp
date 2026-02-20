@@ -62,6 +62,13 @@ int w_Contact_getRestitution(lua_State *L)
 	return 1;
 }
 
+int w_Contact_getRestitutionThreshold(lua_State *L)
+{
+	Contact *t = luax_checkcontact(L, 1);
+	lua_pushnumber(L, t->getRestitutionThreshold());
+	return 1;
+}
+
 int w_Contact_isEnabled(lua_State *L)
 {
 	Contact *t = luax_checkcontact(L, 1);
@@ -92,6 +99,14 @@ int w_Contact_setRestitution(lua_State *L)
 	return 0;
 }
 
+int w_Contact_setRestitutionThreshold(lua_State *L)
+{
+	Contact *t = luax_checkcontact(L, 1);
+	float r = (float)luaL_checknumber(L, 2);
+	t->setRestitutionThreshold(r);
+	return 0;
+}
+
 int w_Contact_setEnabled(lua_State *L)
 {
 	Contact *t = luax_checkcontact(L, 1);
@@ -111,6 +126,13 @@ int w_Contact_resetRestitution(lua_State *L)
 {
 	Contact *t = luax_checkcontact(L, 1);
 	t->resetRestitution();
+	return 0;
+}
+
+int w_Contact_resetRestitutionThreshold(lua_State *L)
+{
+	Contact *t = luax_checkcontact(L, 1);
+	t->resetRestitutionThreshold();
 	return 0;
 }
 
@@ -170,13 +192,16 @@ static const luaL_Reg w_Contact_functions[] =
 	{ "getNormal", w_Contact_getNormal },
 	{ "getFriction", w_Contact_getFriction },
 	{ "getRestitution", w_Contact_getRestitution },
+	{ "getRestitutionThreshold", w_Contact_getRestitutionThreshold },
 	{ "isEnabled", w_Contact_isEnabled },
 	{ "isTouching", w_Contact_isTouching },
 	{ "setFriction", w_Contact_setFriction },
 	{ "setRestitution", w_Contact_setRestitution },
+	{ "setRestitutionThreshold", w_Contact_setRestitutionThreshold },
 	{ "setEnabled", w_Contact_setEnabled },
 	{ "resetFriction", w_Contact_resetFriction },
 	{ "resetRestitution", w_Contact_resetRestitution },
+	{ "resetRestitutionThreshold", w_Contact_resetRestitutionThreshold },
 	{ "setTangentSpeed", w_Contact_setTangentSpeed },
 	{ "getTangentSpeed", w_Contact_getTangentSpeed },
 	{ "getChildren", w_Contact_getChildren },
