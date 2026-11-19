@@ -163,6 +163,9 @@ public:
 		FEATURE_TEXEL_BUFFER,
 		FEATURE_COPY_TEXTURE_TO_BUFFER,
 		FEATURE_INDIRECT_DRAW,
+		FEATURE_VERTEX_WRITE,
+		FEATURE_PIXEL_WRITE,
+		FEATURE_SHADER_LAYER,
 		FEATURE_MAX_ENUM
 	};
 
@@ -401,10 +404,12 @@ public:
 		std::vector<RenderTarget> colors;
 		RenderTarget depthStencil;
 		uint32 temporaryRTFlags;
+		bool shaderLayer;
 
 		RenderTargets()
 			: depthStencil(nullptr)
 			, temporaryRTFlags(0)
+			, shaderLayer(false)
 		{}
 
 		const RenderTarget &getFirstTarget() const
@@ -424,7 +429,7 @@ public:
 					return false;
 			}
 
-			if (depthStencil != other.depthStencil || temporaryRTFlags != other.temporaryRTFlags)
+			if (depthStencil != other.depthStencil || temporaryRTFlags != other.temporaryRTFlags || shaderLayer != other.shaderLayer)
 				return false;
 
 			return true;
@@ -436,15 +441,41 @@ public:
 		std::vector<RenderTargetStrongRef> colors;
 		RenderTargetStrongRef depthStencil;
 		uint32 temporaryRTFlags;
+		bool shaderLayer;
 
 		RenderTargetsStrongRef()
 			: depthStencil(nullptr)
 			, temporaryRTFlags(0)
+			, shaderLayer(false)
 		{}
 
 		const RenderTargetStrongRef &getFirstTarget() const
 		{
 			return colors.empty() ? depthStencil : colors[0];
+		}
+	};
+
+	struct BackbufferSettings
+	{
+		int width = 0;
+		int height = 0;
+		int pixelWidth = 0;
+		int pixelHeight = 0;
+		bool stencil = false;
+		bool depth = false;
+		int msaa = 0;
+
+		bool operator == (const BackbufferSettings &other) const
+		{
+			return width == other.width && height == other.height
+				&& pixelWidth == other.pixelWidth && pixelHeight == other.pixelHeight
+				&& stencil == other.stencil && depth == other.depth
+				&& msaa == other.msaa;
+		}
+
+		bool operator != (const BackbufferSettings &other) const
+		{
+			return !(operator == (other));
 		}
 	};
 
@@ -505,13 +536,13 @@ public:
 	/**
 	 * Called when the backbuffer changes.
 	 **/
-	virtual void backbufferChanged(int width, int height, int pixelwidth, int pixelheight, bool backbufferstencil, bool backbufferdepth, int msaa) = 0;
+	virtual void backbufferChanged(const BackbufferSettings &settings) = 0;
 	void backbufferChanged(int width, int height, int pixelwidth, int pixelheight);
 
 	/**
 	 * Sets the current graphics display viewport and initializes the renderer.
 	 **/
-	virtual bool setMode(void *context, int width, int height, int pixelwidth, int pixelheight, bool backbufferstencil, bool backbufferdepth, int msaa) = 0;
+	virtual bool setMode(void *context, const BackbufferSettings &settings) = 0;
 
 	/**
 	 * Un-sets the current graphics display mode (uninitializing objects if
@@ -546,7 +577,7 @@ public:
 	double getCurrentDPIScale() const;
 	double getScreenDPIScale() const;
 
-	virtual int getRequestedBackbufferMSAA() const = 0;
+	int getRequestedBackbufferMSAA() const;
 	virtual int getBackbufferMSAA() const = 0;
 
 	Buffer *getQuadIndexBuffer() const { return quadIndexBuffer; }
@@ -595,8 +626,8 @@ public:
 	 * and not drawn. Scissoring is automatically enabled.
 	 * @param rect The rectangle defining the scissor area.
 	 **/
-	virtual void setScissor(const Rect &rect) = 0;
-	void intersectScissor(const Rect &rect);
+	virtual void setScissor(const FRect &rect) = 0;
+	void intersectScissor(const FRect &rect);
 
 	/**
 	 * Clears any scissor that has been created.
@@ -607,7 +638,7 @@ public:
 	 * Gets the current scissor box.
 	 * @return Whether the scissor is enabled.
 	 */
-	bool getScissor(Rect &rect) const;
+	bool getScissor(FRect &rect) const;
 
 	void setStencilMode(StencilMode mode, int value);
 	void setStencilMode();
@@ -942,7 +973,7 @@ protected:
 		float pointSize = 1.0f;
 
 		bool scissor = false;
-		Rect scissorRect = Rect();
+		FRect scissorRect = FRect();
 
 		StencilState stencil;
 
@@ -974,6 +1005,7 @@ protected:
 		StreamBuffer *indexBuffer = nullptr;
 
 		PrimitiveType primitiveMode = PRIMITIVE_TRIANGLES;
+		bool indexedDraw = false;
 		CommonFormat formats[2] = {};
 		StrongRef<Texture> texture;
 		Shader::StandardShader standardShaderType = Shader::STANDARD_DEFAULT;
@@ -1050,13 +1082,7 @@ protected:
 
 	void updateDeviceProjection(const Matrix4 &projection);
 
-	int width;
-	int height;
-	int pixelWidth;
-	int pixelHeight;
-
-	bool backbufferHasStencil;
-	bool backbufferHasDepth;
+	BackbufferSettings backbufferSettings;
 
 	bool created;
 	bool active;

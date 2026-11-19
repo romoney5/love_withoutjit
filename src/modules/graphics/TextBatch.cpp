@@ -229,7 +229,7 @@ Font *TextBatch::getFont() const
 	return font.get();
 }
 
-int TextBatch::getWidth(int index) const
+float TextBatch::getWidth(int index) const
 {
 	if (index < 0)
 		index = std::max((int) textData.size() - 1, 0);
@@ -240,7 +240,7 @@ int TextBatch::getWidth(int index) const
 	return textData[index].textInfo.width;
 }
 
-int TextBatch::getHeight(int index) const
+float TextBatch::getHeight(int index) const
 {
 	if (index < 0)
 		index = std::max((int) textData.size() - 1, 0);
@@ -270,7 +270,7 @@ void TextBatch::draw(Graphics *gfx, const Matrix4 &m)
 		firsttex = drawCommands[0].texture;
 
 	if (Shader::current)
-		Shader::current->validateDrawState(PRIMITIVE_TRIANGLES, firsttex);
+		Shader::current->validateDrawState(gfx, PRIMITIVE_TRIANGLES, firsttex);
 
 	int totalverts = 0;
 	for (const Font::DrawCommand &cmd : drawCommands)

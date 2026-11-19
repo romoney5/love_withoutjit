@@ -60,8 +60,8 @@ public:
 	love::graphics::Texture *newTextureView(love::graphics::Texture *base, const Texture::ViewSettings &viewsettings) override;
 	love::graphics::Buffer *newBuffer(const Buffer::Settings &settings, const std::vector<Buffer::DataDeclaration> &format, const void *data, size_t size, size_t arraylength) override;
 
-	void backbufferChanged(int width, int height, int pixelwidth, int pixelheight, bool backbufferstencil, bool backbufferdepth, int msaa) override;
-	bool setMode(void *context, int width, int height, int pixelwidth, int pixelheight, bool backbufferstencil, bool backbufferdepth, int msaa) override;
+	void backbufferChanged(const BackbufferSettings &settings) override;
+	bool setMode(void *context, const BackbufferSettings &settings) override;
 	void unSetMode() override;
 
 	void setActive(bool active) override;
@@ -80,12 +80,11 @@ public:
 
 	void present(void *screenshotCallbackData) override;
 
-	int getRequestedBackbufferMSAA() const override;
 	int getBackbufferMSAA() const override;
 
 	void setColor(Colorf c) override;
 
-	void setScissor(const Rect &rect) override;
+	void setScissor(const FRect &rect) override;
 	void setScissor() override;
 
 	void setStencilState(const StencilState &s) override;
@@ -155,7 +154,7 @@ private:
 
 	void setDebug(bool enable);
 
-	void setScissor(const Rect &rect, bool rtActive);
+	void setScissor(const FRect &rect, bool rtActive);
 
 	uint32 computePixelFormatUsage(PixelFormat format, bool readable);
 
@@ -166,7 +165,6 @@ private:
 	StrongRef<love::graphics::Texture> internalBackbuffer;
 	StrongRef<love::graphics::Texture> internalBackbufferDepthStencil;
 	GLuint internalBackbufferFBO;
-	int requestedBackbufferMSAA;
 
 	char *bufferMapMemory;
 	size_t bufferMapMemorySize;

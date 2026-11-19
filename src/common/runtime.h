@@ -180,6 +180,8 @@ double luax_numberflag(lua_State *L, int table_index, const char *key, double de
 bool luax_checkboolflag(lua_State *L, int table_index, const char *key);
 int luax_checkintflag(lua_State *L, int table_index, const char *key);
 
+void luax_checkunsetflag(lua_State *L, int table_index, const char *key);
+
 /**
  * Convert the value at the specified index to an Lua number, and then
  * convert to a float.
@@ -492,6 +494,14 @@ lua_State *luax_insistpinnedthread(lua_State *L);
  * NOTE: This does not push anything to the stack.
  **/
 lua_State *luax_getpinnedthread(lua_State *L);
+
+/**
+ * Lua C function to use with luax_preload when the given module should not
+ * be allowed on a thread. Must be called from the thread's code.
+ **/
+extern "C" {
+	int luax_module_threaderror(lua_State *L);
+}
 
 /**
  * Mark a function as deprecated. Should only be called inside wrapper function

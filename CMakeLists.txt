@@ -754,6 +754,10 @@ add_library(love_image_magpie STATIC
 	src/modules/image/magpie/PVRHandler.h
 	src/modules/image/magpie/STBHandler.cpp
 	src/modules/image/magpie/STBHandler.h
+    src/modules/image/magpie/QOIHandler.cpp
+	src/modules/image/magpie/QOIHandler.h
+	src/modules/image/magpie/WEBPHandler.cpp
+	src/modules/image/magpie/WEBPHandler.h
 )
 target_link_libraries(love_image_magpie PUBLIC
 	lovedep::Zlib
@@ -1484,15 +1488,13 @@ add_library(love_3p_glslang
 	src/libraries/glslang/SPIRV/Logger.cpp
 	src/libraries/glslang/SPIRV/Logger.h
 	src/libraries/glslang/SPIRV/NonSemanticDebugPrintf.h
-	src/libraries/glslang/SPIRV/NonSemanticShaderDebugInfo100.h
+	src/libraries/glslang/SPIRV/NonSemanticShaderDebugInfo.h
 	src/libraries/glslang/SPIRV/spirv.hpp11
 	src/libraries/glslang/SPIRV/SpvBuilder.cpp
 	src/libraries/glslang/SPIRV/SpvBuilder.h
 	src/libraries/glslang/SPIRV/spvIR.h
 	src/libraries/glslang/SPIRV/spvUtil.h
 	src/libraries/glslang/SPIRV/SpvPostProcess.cpp
-	src/libraries/glslang/SPIRV/SPVRemapper.cpp
-	src/libraries/glslang/SPIRV/SPVRemapper.h
 	src/libraries/glslang/SPIRV/SpvTools.cpp
 	src/libraries/glslang/SPIRV/SpvTools.h
 )
@@ -1879,6 +1881,15 @@ add_library(love_3p_xxhash
 )
 
 #
+# Simple WebP
+#
+
+# Simple has no implementation files of its own.
+#add_library(love_3p_simplewebp
+#	src/libraries/simplewebp/simplewebp.h
+#)
+
+#
 # liblove
 #
 include_directories(
@@ -2051,6 +2062,7 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 
 	# Extra DLLs.
 	if(LOVE_EXTRA_DLLS)
+		file(TO_CMAKE_PATH "${LOVE_EXTRA_DLLS}" LOVE_EXTRA_DLLS)
 		foreach(DLL ${LOVE_EXTRA_DLLS})
 			get_filename_component(DLL_NAME ${DLL} NAME)
 			message(STATUS "Extra DLL: ${DLL_NAME}")
@@ -2060,6 +2072,7 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
 
 	# Dynamic runtime libs.
 	if(LOVE_MSVC_DLLS)
+		file(TO_CMAKE_PATH "${LOVE_MSVC_DLLS}" LOVE_MSVC_DLLS)
 		foreach(DLL ${LOVE_MSVC_DLLS})
 			get_filename_component(DLL_NAME ${DLL} NAME)
 			message(STATUS "Runtime DLL: ${DLL_NAME}")

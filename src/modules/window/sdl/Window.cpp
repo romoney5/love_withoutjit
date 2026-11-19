@@ -84,7 +84,6 @@ Window::Window()
 #ifdef LOVE_GRAPHICS_METAL
 	, metalView(nullptr)
 #endif
-	, displayedWindowError(false)
 	, contextAttribs()
 {
 	if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_EVENTS))
@@ -425,8 +424,7 @@ bool Window::createWindowAndContext(int x, int y, int w, int h, Uint32 windowfla
 
 	if (failed)
 	{
-		std::string title = "Unable to create renderer";
-		std::string message = "This program requires a graphics card and video drivers which support OpenGL 3.3 or OpenGL ES 3.0.";
+		std::string message = "This program requires a graphics card and video drivers which support Vulkan, OpenGL 3.3, or OpenGL ES 3.0.";
 
 		if (!glversion.empty())
 			message += "\n\nDetected OpenGL version:\n" + glversion;
@@ -435,16 +433,9 @@ bool Window::createWindowAndContext(int x, int y, int w, int h, Uint32 windowfla
 		else if (!windowerror.empty())
 			message += "\n\nSDL window creation error: " + windowerror;
 
-		std::cerr << title << std::endl << message << std::endl;
+		close(false);
 
-		// Display a message box with the error, but only once.
-		if (!displayedWindowError)
-		{
-			showMessageBox(title, message, MESSAGEBOX_ERROR, false);
-			displayedWindowError = true;
-		}
-
-		close();
+		throw love::Exception("Unable to create renderer.\n%s", message.c_str());
 		return false;
 	}
 
@@ -576,6 +567,8 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 
 	if (isOpen())
 	{
+		SDL_SetWindowMinimumSize(window, f.minwidth, f.minheight);
+
 		if (fsmode.w > 0 && fsmode.h > 0)
 			SDL_SetWindowFullscreenMode(window, &fsmode);
 		else
@@ -620,6 +613,8 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 		if (!createWindowAndContext(x, y, width, height, createflags, renderer))
 			return false;
 
+		SDL_SetWindowMinimumSize(window, f.minwidth, f.minheight);
+
 		if (f.fullscreen)
 		{
 			if (fsmode.w > 0 && fsmode.h > 0)
@@ -640,9 +635,6 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 	// Make sure the mouse keeps its previous grab setting.
 	setMouseGrab(mouseGrabbed);
 
-	// Enforce minimum window dimensions.
-	SDL_SetWindowMinimumSize(window, f.minwidth, f.minheight);
-
 	if (this->settings.displayindex != f.displayindex || f.useposition || f.centered)
 		SDL_SetWindowPosition(window, x, y);
 
@@ -657,6 +649,15 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 		double scaledw, scaledh;
 		fromPixels((double) pixelWidth, (double) pixelHeight, scaledw, scaledh);
 
+		graphics::Graphics::BackbufferSettings backbufferSettings;
+		backbufferSettings.width = (int)scaledw;
+		backbufferSettings.height = (int)scaledh;
+		backbufferSettings.pixelWidth = pixelWidth;
+		backbufferSettings.pixelHeight = pixelHeight;
+		backbufferSettings.stencil = f.stencil;
+		backbufferSettings.depth = f.depth;
+		backbufferSettings.msaa = f.msaa;
+
 		if (needsetmode)
 		{
 			void *context = nullptr;
@@ -667,12 +668,19 @@ bool Window::setWindow(int width, int height, WindowSettings *settings)
 				context = (void *) SDL_Metal_GetLayer(metalView);
 #endif
 
-			// TODO: try/catch
-			graphics->setMode(context, (int) scaledw, (int) scaledh, pixelWidth, pixelHeight, f.stencil, f.depth, f.msaa);
+			try
+			{
+				graphics->setMode(context, backbufferSettings);
+			}
+			catch (std::exception &e)
+			{
+				close(false);
+				throw love::Exception("Failed to initialize graphics.\n%s", e.what());
+			}
 		}
 		else
 		{
-			graphics->backbufferChanged((int) scaledw, (int) scaledh, pixelWidth, pixelHeight, f.stencil, f.depth, f.msaa);
+			graphics->backbufferChanged(backbufferSettings);
 		}
 
 		this->settings.msaa = graphics->getBackbufferMSAA();
@@ -761,12 +769,6 @@ void Window::updateSettings(const WindowSettings &newsettings, bool updateGraphi
 
 	settings.usedpiscale = newsettings.usedpiscale;
 
-	// Only minimize on focus loss if the window is in exclusive-fullscreen mode
-	if (settings.fullscreen && settings.fstype == FULLSCREEN_EXCLUSIVE)
-		SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "1");
-	else
-		SDL_SetHint(SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "0");
-
 	settings.vsync = getVSync();
 
 	settings.stencil = newsettings.stencil;
@@ -852,7 +854,6 @@ bool Window::setFullscreen(bool fullscreen, FullscreenType fstype)
 	newsettings.fullscreen = fullscreen;
 	newsettings.fstype = fstype;
 
-	bool sdlflags = fullscreen;
 	if (fullscreen)
 	{
 		if (fstype == FULLSCREEN_DESKTOP)
@@ -860,9 +861,11 @@ bool Window::setFullscreen(bool fullscreen, FullscreenType fstype)
 		else
 		{
 			SDL_DisplayID displayid = SDL_GetDisplayForWindow(window);
-			SDL_DisplayMode mode = {};
-			if (SDL_GetClosestFullscreenDisplayMode(displayid, windowWidth, windowHeight, 0, isHighDPIAllowed(), &mode))
-				SDL_SetWindowFullscreenMode(window, &mode);
+			const SDL_DisplayMode *mode = SDL_GetDesktopDisplayMode(displayid);
+			if (mode != nullptr)
+				SDL_SetWindowFullscreenMode(window, mode);
+			else
+				return false;
 		}
 	}
 
@@ -870,7 +873,7 @@ bool Window::setFullscreen(bool fullscreen, FullscreenType fstype)
 	love::android::setImmersive(fullscreen);
 #endif
 
-	if (SDL_SetWindowFullscreen(window, sdlflags))
+	if (SDL_SetWindowFullscreen(window, fullscreen))
 	{
 		if (glcontext)
 			SDL_GL_MakeCurrent(window, glcontext);
@@ -917,9 +920,9 @@ Window::DisplayOrientation Window::getDisplayOrientation(int displayindex) const
 	return ORIENTATION_UNKNOWN;
 }
 
-std::vector<Window::WindowSize> Window::getFullscreenSizes(int displayindex) const
+std::vector<Window::DisplayMode> Window::getFullscreenModes(int displayindex) const
 {
-	std::vector<WindowSize> sizes;
+	std::vector<DisplayMode> sizes;
 
 	int count = 0;
 	SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(GetSDLDisplayIDForIndex(displayindex), &count);
@@ -927,7 +930,8 @@ std::vector<Window::WindowSize> Window::getFullscreenSizes(int displayindex) con
 	for (int i = 0; i < count; i++)
 	{
 		// TODO: other mode properties?
-		WindowSize w = {modes[i]->w, modes[i]->h};
+		double refreshrate = (double)modes[i]->refresh_rate_numerator / (double)modes[i]->refresh_rate_denominator;
+		DisplayMode w = {modes[i]->w, modes[i]->h, refreshrate};
 
 		// SDL2's display mode list has multiple entries for modes of the same
 		// size with different bits per pixel, so we need to filter those out.
@@ -956,7 +960,7 @@ void Window::getDesktopDimensions(int displayindex, int &width, int &height) con
 	}
 }
 
-void Window::setPosition(int x, int y, int displayindex)
+void Window::setPosition(int x, int y, int displayindex, bool waitForSync)
 {
 	if (!window)
 		return;
@@ -973,7 +977,8 @@ void Window::setPosition(int x, int y, int displayindex)
 	y += displaybounds.y;
 
 	SDL_SetWindowPosition(window, x, y);
-	SDL_SyncWindow(window);
+	if (waitForSync)
+		SDL_SyncWindow(window);
 
 	settings.useposition = true;
 }
@@ -1016,25 +1021,18 @@ void Window::getPosition(int &x, int &y, int &displayindex)
 
 Rect Window::getSafeArea() const
 {
-#if defined(LOVE_IOS)
-	if (window != nullptr)
-		return love::ios::getSafeArea(window);
-#elif defined(LOVE_ANDROID)
-	if (window != nullptr)
+	SDL_Rect sdlrect = {};
+	if (window != nullptr && SDL_GetWindowSafeArea(window, &sdlrect))
 	{
-		int top, left, bottom, right;
+		double x = sdlrect.x;
+		double y = sdlrect.y;
+		double w = sdlrect.w;
+		double h = sdlrect.h;
+		windowToDPICoords(&x, &y);
+		windowToDPICoords(&w, &h);
 
-		if (love::android::getSafeArea(top, left, bottom, right))
-		{
-			// DisplayCutout API returns safe area in pixels
-			// and is affected by display orientation.
-			double safeLeft, safeTop, safeWidth, safeHeight;
-			fromPixels(left, top, safeLeft, safeTop);
-			fromPixels(pixelWidth - left - right, pixelHeight - top - bottom, safeWidth, safeHeight);
-			return {(int) safeLeft, (int) safeTop, (int) safeWidth, (int) safeHeight};
-		}
+		return {(int)x, (int)y, (int)w, (int)h};
 	}
-#endif
 
 	double dw, dh;
 	fromPixels(pixelWidth, pixelHeight, dw, dh);
@@ -1519,8 +1517,6 @@ static void SDLCALL fileDialogCallbackSDL(void *userdata, const char *const *fil
 	if (state == nullptr)
 		return;
 
-	auto fs = Module::getInstance<filesystem::Filesystem>(Module::M_FILESYSTEM);
-
 	if (filelist != nullptr)
 	{
 		// SDL's file list only lasts until the end of the callback, so we copy it.
@@ -1623,36 +1619,8 @@ void Window::showFileDialog(const FileDialogData &data, FileDialogCallback callb
 
 void Window::requestAttention(bool continuous)
 {
-#if defined(LOVE_WINDOWS) && !defined(LOVE_WINDOWS_UWP)
-
-	if (hasFocus())
-		return;
-
-	FLASHWINFO flashinfo = { sizeof(FLASHWINFO) };
-
-	flashinfo.hwnd = (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
-	flashinfo.uCount = 1;
-	flashinfo.dwFlags = FLASHW_ALL;
-
-	if (continuous)
-	{
-		flashinfo.uCount = 0;
-		flashinfo.dwFlags |= FLASHW_TIMERNOFG;
-	}
-
-	FlashWindowEx(&flashinfo);
-
-#elif defined(LOVE_MACOS)
-
-	love::macos::requestAttention(continuous);
-
-#else
-
-	LOVE_UNUSED(continuous);
-	
-#endif
-	
-	// TODO: Linux?
+	if (window != nullptr)
+		SDL_FlashWindow(window, continuous ? SDL_FLASH_UNTIL_FOCUSED : SDL_FLASH_BRIEFLY);
 }
 
 Window::SystemTheme Window::getSystemTheme() const

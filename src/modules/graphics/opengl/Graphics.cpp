@@ -39,6 +39,7 @@
 #include <sstream>
 #include <algorithm>
 #include <iterator>
+#include <tuple>
 
 // C
 #include <cmath>
@@ -89,9 +90,10 @@ static GLenum getGLBlendFactor(BlendFactor factor)
 	return 0;
 }
 
-love::graphics::Graphics *createInstance()
+std::tuple<love::graphics::Graphics *, std::string> createInstance()
 {
 	love::graphics::Graphics *instance = nullptr;
+	std::string err;
 
 	try
 	{
@@ -99,10 +101,10 @@ love::graphics::Graphics *createInstance()
 	}
 	catch (love::Exception &e)
 	{
-		printf("Cannot create OpenGL renderer: %s\n", e.what());
+		err = "Cannot create OpenGL renderer: " + std::string(e.what()) + "\n";
 	}
 
-	return instance;
+	return { instance, err };
 }
 
 Graphics::Graphics()
@@ -110,7 +112,6 @@ Graphics::Graphics()
 	, windowHasStencil(false)
 	, mainVAO(0)
 	, internalBackbufferFBO(0)
-	, requestedBackbufferMSAA(0)
 	, bufferMapMemory(nullptr)
 	, bufferMapMemorySize(2 * 1024 * 1024)
 	, pixelFormatUsage()
@@ -188,27 +189,15 @@ love::graphics::GraphicsReadback *Graphics::newReadbackInternal(ReadbackMethod m
 	return new GraphicsReadback(this, method, texture, slice, mipmap, rect, dest, destx, desty);
 }
 
-void Graphics::backbufferChanged(int width, int height, int pixelwidth, int pixelheight, bool backbufferstencil, bool backbufferdepth, int msaa)
+void Graphics::backbufferChanged(const BackbufferSettings &settings)
 {
-	bool changed = width != this->width || height != this->height
-		|| pixelwidth != this->pixelWidth || pixelheight != this->pixelHeight;
-
-	changed |= backbufferstencil != this->backbufferHasStencil || backbufferdepth != this->backbufferHasDepth;
-	changed |= msaa != this->requestedBackbufferMSAA;
-
-	this->width = width;
-	this->height = height;
-	this->pixelWidth = pixelwidth;
-	this->pixelHeight = pixelheight;
-
-	this->backbufferHasStencil = backbufferstencil;
-	this->backbufferHasDepth = backbufferdepth;
-	this->requestedBackbufferMSAA = msaa;
+	bool changed = settings != backbufferSettings;
+	backbufferSettings = settings;
 
 	if (!isRenderTargetActive())
 	{
 		// Set the viewport to top-left corner.
-		gl.setViewport({0, 0, pixelwidth, pixelheight});
+		gl.setViewport({0, 0, settings.pixelWidth, settings.pixelHeight});
 
 		// Re-apply the scissor if it was active, since the rectangle passed to
 		// glScissor is affected by the viewport dimensions.
@@ -222,7 +211,7 @@ void Graphics::backbufferChanged(int width, int height, int pixelwidth, int pixe
 		return;
 
 	bool useinternalbackbuffer = false;
-	if (msaa > 1)
+	if (settings.msaa > 1)
 		useinternalbackbuffer = true;
 
 	GLuint prevFBO = gl.getFramebuffer(OpenGL::FRAMEBUFFER_ALL);
@@ -230,27 +219,27 @@ void Graphics::backbufferChanged(int width, int height, int pixelwidth, int pixe
 
 	if (useinternalbackbuffer)
 	{
-		Texture::Settings settings;
-		settings.width = width;
-		settings.height = height;
-		settings.dpiScale = (float)pixelheight / (float)height;
-		settings.msaa = msaa;
-		settings.renderTarget = true;
-		settings.readable.set(false);
+		Texture::Settings ts;
+		ts.width = settings.width;
+		ts.height = settings.height;
+		ts.dpiScale = (float)settings.pixelHeight / (float)settings.height;
+		ts.msaa = settings.msaa;
+		ts.renderTarget = true;
+		ts.readable.set(false);
 
-		settings.format = isGammaCorrect() ? PIXELFORMAT_RGBA8_sRGB : PIXELFORMAT_RGBA8_UNORM;
-		internalBackbuffer.set(newTexture(settings), Acquire::NORETAIN);
+		ts.format = isGammaCorrect() ? PIXELFORMAT_RGBA8_sRGB : PIXELFORMAT_RGBA8_UNORM;
+		internalBackbuffer.set(newTexture(ts), Acquire::NORETAIN);
 
 		internalBackbufferDepthStencil.set(nullptr);
-		if (backbufferstencil || backbufferdepth)
+		if (settings.stencil || settings.depth)
 		{
-			if (backbufferstencil && backbufferdepth)
-				settings.format = PIXELFORMAT_DEPTH24_UNORM_STENCIL8;
-			else if (backbufferstencil)
-				settings.format = PIXELFORMAT_STENCIL8;
-			else if (backbufferdepth)
-				settings.format = PIXELFORMAT_DEPTH24_UNORM;
-			internalBackbufferDepthStencil.set(newTexture(settings), Acquire::NORETAIN);
+			if (settings.stencil && settings.depth)
+				ts.format = PIXELFORMAT_DEPTH24_UNORM_STENCIL8;
+			else if (settings.stencil)
+				ts.format = PIXELFORMAT_STENCIL8;
+			else if (settings.depth)
+				ts.format = PIXELFORMAT_DEPTH24_UNORM;
+			internalBackbufferDepthStencil.set(newTexture(ts), Acquire::NORETAIN);
 		}
 
 		RenderTargets rts;
@@ -293,7 +282,7 @@ GLuint Graphics::getSystemBackbufferFBO() const
 #endif
 }
 
-bool Graphics::setMode(void */*context*/, int width, int height, int pixelwidth, int pixelheight, bool backbufferstencil, bool backbufferdepth, int msaa)
+bool Graphics::setMode(void */*context*/, const BackbufferSettings &settings)
 {
 	// Okay, setup OpenGL.
 	gl.initContext();
@@ -350,7 +339,7 @@ bool Graphics::setMode(void */*context*/, int width, int height, int pixelwidth,
 
 	setDebug(isDebugEnabled());
 
-	backbufferChanged(width, height, pixelwidth, pixelheight, backbufferstencil, backbufferdepth, msaa);
+	backbufferChanged(settings);
 
 	if (batchedDrawState.vb[0] == nullptr)
 	{
@@ -455,7 +444,7 @@ void Graphics::setActive(bool enable)
 	active = enable;
 }
 
-static bool computeDispatchBarriers(Shader *shader, GLbitfield &preDispatchBarriers, GLbitfield &postDispatchBarriers)
+static bool shaderBarriers(Shader *shader, GLbitfield &preDispatchBarriers, GLbitfield &postDispatchBarriers)
 {
 	for (auto buffer : shader->getActiveWritableStorageBuffers())
 	{
@@ -516,7 +505,7 @@ bool Graphics::dispatch(love::graphics::Shader *s, int x, int y, int z)
 	GLbitfield preDispatchBarriers = 0;
 	GLbitfield postDispatchBarriers = 0;
 
-	if (!computeDispatchBarriers(shader, preDispatchBarriers, postDispatchBarriers))
+	if (!shaderBarriers(shader, preDispatchBarriers, postDispatchBarriers))
 		return false;
 
 	// glMemoryBarrier before dispatch to make sure non-compute-read ->
@@ -545,7 +534,7 @@ bool Graphics::dispatch(love::graphics::Shader *s, love::graphics::Buffer *indir
 	GLbitfield preDispatchBarriers = 0;
 	GLbitfield postDispatchBarriers = 0;
 
-	if (!computeDispatchBarriers(shader, preDispatchBarriers, postDispatchBarriers))
+	if (!shaderBarriers(shader, preDispatchBarriers, postDispatchBarriers))
 		return false;
 
 	if (preDispatchBarriers != 0)
@@ -570,6 +559,15 @@ void Graphics::draw(const DrawCommand &cmd)
 	VertexAttributes attributes;
 	findVertexAttributes(cmd.attributesID, attributes);
 
+	GLbitfield preDrawBarriers = 0;
+	GLbitfield postDrawBarriers = 0;
+
+	if (!shaderBarriers((Shader *)Shader::current, preDrawBarriers, postDrawBarriers))
+		return;
+
+	if (preDrawBarriers != 0)
+		glMemoryBarrier(preDrawBarriers);
+
 	gl.prepareDraw(this);
 	gl.setVertexAttributes(attributes, *cmd.buffers);
 	gl.bindTextureToUnit(cmd.texture, 0, false);
@@ -587,6 +585,9 @@ void Graphics::draw(const DrawCommand &cmd)
 	else
 		glDrawArrays(glprimitivetype, cmd.vertexStart, cmd.vertexCount);
 
+	if (postDrawBarriers != 0)
+		glMemoryBarrier(postDrawBarriers);
+
 	++drawCalls;
 }
 
@@ -594,6 +595,15 @@ void Graphics::draw(const DrawIndexedCommand &cmd)
 {
 	VertexAttributes attributes;
 	findVertexAttributes(cmd.attributesID, attributes);
+
+	GLbitfield preDrawBarriers = 0;
+	GLbitfield postDrawBarriers = 0;
+
+	if (!shaderBarriers((Shader *)Shader::current, preDrawBarriers, postDrawBarriers))
+		return;
+
+	if (preDrawBarriers != 0)
+		glMemoryBarrier(preDrawBarriers);
 
 	gl.prepareDraw(this);
 	gl.setVertexAttributes(attributes, *cmd.buffers);
@@ -617,6 +627,9 @@ void Graphics::draw(const DrawIndexedCommand &cmd)
 		glDrawElementsInstanced(glprimitivetype, cmd.indexCount, gldatatype, gloffset, cmd.instanceCount);
 	else
 		glDrawElements(glprimitivetype, cmd.indexCount, gldatatype, gloffset);
+	
+	if (postDrawBarriers != 0)
+		glMemoryBarrier(postDrawBarriers);
 
 	++drawCalls;
 }
@@ -649,6 +662,12 @@ void Graphics::drawQuads(int start, int count, VertexAttributesID attributesID, 
 	const int MAX_VERTICES_PER_DRAW = LOVE_UINT16_MAX;
 	const int MAX_QUADS_PER_DRAW    = MAX_VERTICES_PER_DRAW / 4;
 
+	GLbitfield preDrawBarriers = 0;
+	GLbitfield postDrawBarriers = 0;
+
+	if (!shaderBarriers((Shader *)Shader::current, preDrawBarriers, postDrawBarriers))
+		return;
+
 	VertexAttributes attributes;
 	findVertexAttributes(attributesID, attributes);
 
@@ -666,9 +685,16 @@ void Graphics::drawQuads(int start, int count, VertexAttributesID attributesID, 
 
 		for (int quadindex = 0; quadindex < count; quadindex += MAX_QUADS_PER_DRAW)
 		{
+			if (preDrawBarriers != 0)
+				glMemoryBarrier(preDrawBarriers);
+
 			int quadcount = std::min(MAX_QUADS_PER_DRAW, count - quadindex);
 
 			glDrawElementsBaseVertex(GL_TRIANGLES, quadcount * 6, GL_UNSIGNED_SHORT, BUFFER_OFFSET(0), basevertex);
+
+			if (postDrawBarriers != 0)
+				glMemoryBarrier(postDrawBarriers);
+
 			++drawCalls;
 
 			basevertex += quadcount * 4;
@@ -682,11 +708,18 @@ void Graphics::drawQuads(int start, int count, VertexAttributesID attributesID, 
 
 		for (int quadindex = 0; quadindex < count; quadindex += MAX_QUADS_PER_DRAW)
 		{
+			if (preDrawBarriers != 0)
+				glMemoryBarrier(preDrawBarriers);
+
 			gl.setVertexAttributes(attributes, bufferscopy);
 
 			int quadcount = std::min(MAX_QUADS_PER_DRAW, count - quadindex);
 
 			glDrawElements(GL_TRIANGLES, quadcount * 6, GL_UNSIGNED_SHORT, BUFFER_OFFSET(0));
+
+			if (postDrawBarriers != 0)
+				glMemoryBarrier(postDrawBarriers);
+
 			++drawCalls;
 
 			if (count > MAX_QUADS_PER_DRAW)
@@ -1140,8 +1173,18 @@ GLuint Graphics::bindCachedFBO(const RenderTargets &targets)
 				{
 					TextureType textype = rt.texture->getTextureType();
 
-					int layer = textype == TEXTURE_CUBE ? 0 : rt.slice;
-					int face = textype == TEXTURE_CUBE ? rt.slice : 0;
+					int layer = 0, face = 0;
+					if (targets.shaderLayer)
+					{
+						layer = textype == TEXTURE_CUBE ? 0 : OpenGL::FRAMEBUFFER_ALL_LAYERS;
+						face = textype == TEXTURE_CUBE ? OpenGL::FRAMEBUFFER_ALL_FACES : 0;
+					}
+					else
+					{
+						layer = textype == TEXTURE_CUBE ? 0 : rt.slice;
+						face = textype == TEXTURE_CUBE ? rt.slice : 0;
+					}
+
 					int level = rt.mipmap;
 
 					gl.framebufferTexture(attachment, textype, handle, level, layer, face);
@@ -1314,17 +1357,12 @@ void Graphics::present(void *screenshotCallbackData)
 	updateTemporaryResources();
 }
 
-int Graphics::getRequestedBackbufferMSAA() const
-{
-	return requestedBackbufferMSAA;
-}
-
 int Graphics::getBackbufferMSAA() const
 {
 	return internalBackbuffer.get() ? internalBackbuffer->getMSAA() : 0;
 }
 
-void Graphics::setScissor(const Rect &rect, bool rtActive)
+void Graphics::setScissor(const FRect &rect, bool rtActive)
 {
 	flushBatchedDraws();
 
@@ -1336,10 +1374,10 @@ void Graphics::setScissor(const Rect &rect, bool rtActive)
 	double dpiscale = getCurrentDPIScale();
 
 	Rect glrect;
-	glrect.x = (int) (rect.x * dpiscale);
-	glrect.y = (int) (rect.y * dpiscale);
-	glrect.w = (int) (rect.w * dpiscale);
-	glrect.h = (int) (rect.h * dpiscale);
+	glrect.x = (int) roundf(rect.x * dpiscale);
+	glrect.y = (int) roundf(rect.y * dpiscale);
+	glrect.w = (int) roundf(rect.w * dpiscale);
+	glrect.h = (int) roundf(rect.h * dpiscale);
 
 	// OpenGL's reversed y-coordinate is compensated for in OpenGL::setScissor.
 	gl.setScissor(glrect, rtActive);
@@ -1348,7 +1386,7 @@ void Graphics::setScissor(const Rect &rect, bool rtActive)
 	state.scissorRect = rect;
 }
 
-void Graphics::setScissor(const Rect &rect)
+void Graphics::setScissor(const FRect &rect)
 {
 	setScissor(rect, isRenderTargetActive());
 }
@@ -1604,12 +1642,16 @@ void Graphics::initCapabilities()
 	capabilities.features[FEATURE_PIXEL_SHADER_HIGHP] = true;
 	capabilities.features[FEATURE_SHADER_DERIVATIVES] = true;
 	capabilities.features[FEATURE_GLSL3] = true;
-	capabilities.features[FEATURE_GLSL4] = GLAD_ES_VERSION_3_1 || (gl.isCoreProfile() && GLAD_VERSION_4_3);
+	capabilities.features[FEATURE_GLSL4] = GLAD_ES_VERSION_3_2 || (gl.isCoreProfile() && GLAD_VERSION_4_3);
 	capabilities.features[FEATURE_INSTANCING] = true;
 	capabilities.features[FEATURE_TEXEL_BUFFER] = gl.isBufferUsageSupported(BUFFERUSAGE_TEXEL);
 	capabilities.features[FEATURE_COPY_TEXTURE_TO_BUFFER] = gl.isCopyTextureToBufferSupported();
 	capabilities.features[FEATURE_INDIRECT_DRAW] = capabilities.features[FEATURE_GLSL4];
-	static_assert(FEATURE_MAX_ENUM == 13, "Graphics::initCapabilities must be updated when adding a new graphics feature!");
+	capabilities.features[FEATURE_VERTEX_WRITE] = capabilities.features[FEATURE_GLSL4];
+	capabilities.features[FEATURE_PIXEL_WRITE] = capabilities.features[FEATURE_GLSL4];
+	capabilities.features[FEATURE_PIXEL_WRITE] = capabilities.features[FEATURE_GLSL4];
+	capabilities.features[FEATURE_SHADER_LAYER] = GLAD_ARB_shader_viewport_layer_array;
+	static_assert(FEATURE_MAX_ENUM == 16, "Graphics::initCapabilities must be updated when adding a new graphics feature!");
 
 	capabilities.limits[LIMIT_POINT_SIZE] = gl.getMaxPointSize();
 	capabilities.limits[LIMIT_TEXTURE_SIZE] = gl.getMax2DTextureSize();

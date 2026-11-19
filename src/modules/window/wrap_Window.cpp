@@ -280,7 +280,7 @@ int w_getFullscreenModes(lua_State *L)
 		instance()->getPosition(x, y, displayindex);
 	}
 
-	std::vector<Window::WindowSize> modes = instance()->getFullscreenSizes(displayindex);
+	std::vector<Window::DisplayMode> modes = instance()->getFullscreenModes(displayindex);
 
 	lua_createtable(L, (int) modes.size(), 0);
 
@@ -296,6 +296,9 @@ int w_getFullscreenModes(lua_State *L)
 
 		lua_pushinteger(L, modes[i].height);
 		lua_setfield(L, -2, "height");
+
+		lua_pushnumber(L, modes[i].refreshRate);
+		lua_setfield(L, -2, "refreshrate");
 
 		// Inner table attribs end.
 
@@ -384,8 +387,9 @@ int w_setPosition(lua_State *L)
 		int x_unused, y_unused;
 		instance()->getPosition(x_unused, y_unused, displayindex);
 	}
+	bool waitForSync = luax_optboolean(L, 4, true);
 
-	instance()->setPosition(x, y, displayindex);
+	instance()->setPosition(x, y, displayindex, waitForSync);
 	return 0;
 }
 

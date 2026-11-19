@@ -164,22 +164,18 @@ void Shader::mapActiveUniforms()
 				storageTextureBindings.push_back(binding);
 		}
 
-		if (u.dataSize == 0)
+		if (u.dataSizeAllocated == 0)
 		{
-			if (u.baseType == UNIFORM_MATRIX)
-				u.dataSize = sizeof(uint32) * u.matrix.rows * u.matrix.columns * u.count;
-			else
-				u.dataSize = sizeof(uint32) * u.components * u.count;
-
-			u.data = malloc(u.dataSize);
-			memset(u.data, 0, u.dataSize);
+			u.dataSizePacked = u.dataSizeAllocated = getUniformDataSizePacked(u);
+			u.data = malloc(u.dataSizeAllocated);
+			memset(u.data, 0, u.dataSizeAllocated);
 
 			const auto &valuesit = reflection.localUniformInitializerValues.find(u.name);
 			if (valuesit != reflection.localUniformInitializerValues.end())
 			{
 				const auto &values = valuesit->second;
 				if (!values.empty())
-					memcpy(u.data, values.data(), std::min(u.dataSize, sizeof(LocalUniformValue) * values.size()));
+					memcpy(u.data, values.data(), std::min(u.dataSizePacked, sizeof(LocalUniformValue) * values.size()));
 			}
 		}
 
@@ -237,10 +233,10 @@ void Shader::mapActiveUniforms()
 
 			u.active = true;
 
-			if (u.dataSize == 0)
+			if (u.dataSizeAllocated == 0)
 			{
-				u.dataSize = sizeof(int) * u.count;
-				u.data = malloc(u.dataSize);
+				u.dataSizePacked = u.dataSizeAllocated = sizeof(int) * u.count;
+				u.data = malloc(u.dataSizeAllocated);
 				for (int i = 0; i < u.count; i++)
 					u.ints[i] = -1;
 			}
@@ -318,6 +314,15 @@ bool Shader::loadVolatile()
 		const char *name = nullptr;
 		if (graphics::getConstant((BuiltinVertexAttribute) i, name))
 			glBindAttribLocation(program, i, (const GLchar *) name);
+	}
+
+	if (GLAD_VERSION_3_0)
+	{
+		for (auto &i: reflection.fragmentOutputs)
+		{
+			FragmentOutput &fragmentOutput = i.second;
+			glBindFragDataLocation(program, fragmentOutput.location, fragmentOutput.name.c_str());
+		}
 	}
 
 	glLinkProgram(program);

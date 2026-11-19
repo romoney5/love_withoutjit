@@ -23,6 +23,7 @@ jobs:
                                           libtool pkg-config libasound2-dev libpulse-dev libaudio-dev \
                                           libjack-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
                                           libxfixes-dev libxi-dev libxinerama-dev libxxf86vm-dev libxss-dev \
+                                          libxtst-dev \
                                           libgl1-mesa-dev libdbus-1-dev libudev-dev libgles2-mesa-dev \
                                           libegl1-mesa-dev libibus-1.0-dev fcitx-libs-dev libsamplerate0-dev \
                                           libsndio-dev libwayland-dev libxkbcommon-dev libdrm-dev libgbm-dev \
@@ -277,7 +278,7 @@ jobs:
         CFLAGS: /Zi
         CXXFLAGS: /Zi
         LDFLAGS: /DEBUG:FULL /OPT:REF /OPT:ICF
-      run: cmake -Bbuild -Smegasource -T v143 -A ${{ matrix.platform }},version=10.0.26100.0 --install-prefix %CD%\install -DCMAKE_PDB_OUTPUT_DIRECTORY=%CD%\pdb ${{ steps.vars.outputs.moredef }}
+      run: cmake -Bbuild -Smegasource -T v145 -A ${{ matrix.platform }} --install-prefix %CD%\install -DCMAKE_PDB_OUTPUT_DIRECTORY=%CD%\pdb ${{ steps.vars.outputs.moredef }}
     - name: Install
       run: cmake --build build --target PACKAGE --config Release -j2
     - name: Copy LuaJIT lua51.pdb

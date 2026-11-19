@@ -56,6 +56,9 @@
 		D923E7D3296B85B9002FF1B3 /* harfbuzz.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = D923E7D2296B85B9002FF1B3 /* harfbuzz.xcframework */; };
 		D93660F82D1C727C00C0EC4B /* Touch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D93660F72D1C727C00C0EC4B /* Touch.cpp */; };
 		D93660F92D1C727C00C0EC4B /* Touch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D93660F72D1C727C00C0EC4B /* Touch.cpp */; };
+		D939704A300945BA00A8CCAD /* QOIHandler.h in Headers */ = {isa = PBXBuildFile; fileRef = D9397048300945BA00A8CCAD /* QOIHandler.h */; };
+		D939704B300945BA00A8CCAD /* QOIHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D9397049300945BA00A8CCAD /* QOIHandler.cpp */; };
+		D939704C300945BA00A8CCAD /* QOIHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D9397049300945BA00A8CCAD /* QOIHandler.cpp */; };
 		D943E58E2A24D56000D80361 /* PhysfsIo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D943E58C2A24D56000D80361 /* PhysfsIo.cpp */; };
 		D943E58F2A24D56000D80361 /* PhysfsIo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D943E58C2A24D56000D80361 /* PhysfsIo.cpp */; };
 		D943E5902A24D56000D80361 /* PhysfsIo.h in Headers */ = {isa = PBXBuildFile; fileRef = D943E58D2A24D56000D80361 /* PhysfsIo.h */; };
@@ -76,7 +79,6 @@
 		D9DB6E362B4B41100037A1F6 /* ResourceLimits.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D9DB6E332B4B41100037A1F6 /* ResourceLimits.cpp */; };
 		D9DB6E372B4B41100037A1F6 /* ResourceLimits.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D9DB6E332B4B41100037A1F6 /* ResourceLimits.cpp */; };
 		D9DB6E3E2B4B41580037A1F6 /* NonSemanticDebugPrintf.h in Headers */ = {isa = PBXBuildFile; fileRef = D9DB6E382B4B41570037A1F6 /* NonSemanticDebugPrintf.h */; };
-		D9DB6E3F2B4B41580037A1F6 /* NonSemanticShaderDebugInfo100.h in Headers */ = {isa = PBXBuildFile; fileRef = D9DB6E392B4B41570037A1F6 /* NonSemanticShaderDebugInfo100.h */; };
 		D9DB6E402B4B41580037A1F6 /* GLSL.ext.ARM.h in Headers */ = {isa = PBXBuildFile; fileRef = D9DB6E3A2B4B41570037A1F6 /* GLSL.ext.ARM.h */; };
 		D9DB6E412B4B41580037A1F6 /* GLSL.ext.QCOM.h in Headers */ = {isa = PBXBuildFile; fileRef = D9DB6E3B2B4B41580037A1F6 /* GLSL.ext.QCOM.h */; };
 		D9DB6E452B4B80E80037A1F6 /* build_info.h in Headers */ = {isa = PBXBuildFile; fileRef = D9DB6E442B4B80E80037A1F6 /* build_info.h */; };
@@ -91,6 +93,11 @@
 		D9F0C2DB2C680A5500BB2D25 /* OpenSSLConnection.h in Headers */ = {isa = PBXBuildFile; fileRef = D9F0C2D12C680A5500BB2D25 /* OpenSSLConnection.h */; };
 		D9F0C2DC2C680A5500BB2D25 /* UnixLibraryLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D9F0C2D22C680A5500BB2D25 /* UnixLibraryLoader.cpp */; };
 		D9F0C2DD2C680A5500BB2D25 /* UnixLibraryLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D9F0C2D22C680A5500BB2D25 /* UnixLibraryLoader.cpp */; };
+		D9F318AE3013F85300CFB9D0 /* NonSemanticShaderDebugInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = D9F318AD3013F85300CFB9D0 /* NonSemanticShaderDebugInfo.h */; };
+		D9F318B5301AE2E100CFB9D0 /* WEBPHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D9F318B4301AE2E100CFB9D0 /* WEBPHandler.cpp */; };
+		D9F318B6301AE2E100CFB9D0 /* WEBPHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D9F318B4301AE2E100CFB9D0 /* WEBPHandler.cpp */; };
+		D9F318B7301AE2E100CFB9D0 /* WEBPHandler.h in Headers */ = {isa = PBXBuildFile; fileRef = D9F318B3301AE2E100CFB9D0 /* WEBPHandler.h */; };
+		D9F318BA301AE2FE00CFB9D0 /* simplewebp.h in Headers */ = {isa = PBXBuildFile; fileRef = D9F318B8301AE2FE00CFB9D0 /* simplewebp.h */; };
 		FA0A3A5F23366CE9001C269E /* floattypes.h in Headers */ = {isa = PBXBuildFile; fileRef = FA0A3A5D23366CE9001C269E /* floattypes.h */; };
 		FA0A3A6023366CE9001C269E /* floattypes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FA0A3A5E23366CE9001C269E /* floattypes.cpp */; };
 		FA0A3A6123366CE9001C269E /* floattypes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FA0A3A5E23366CE9001C269E /* floattypes.cpp */; };
@@ -1309,7 +1316,6 @@
 		FAF140BB1E20934C00F898D2 /* ossource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAF140211E20934C00F898D2 /* ossource.cpp */; };
 		FAF140BC1E20934C00F898D2 /* ossource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAF140211E20934C00F898D2 /* ossource.cpp */; };
 		FAF140C41E20934C00F898D2 /* ShaderLang.h in Headers */ = {isa = PBXBuildFile; fileRef = FAF140291E20934C00F898D2 /* ShaderLang.h */; };
-		FAF6C9DA23C2DE2900D7B5BC /* SPVRemapper.h in Headers */ = {isa = PBXBuildFile; fileRef = FAF6C9C123C2DE2900D7B5BC /* SPVRemapper.h */; };
 		FAF6C9DB23C2DE2900D7B5BC /* SpvBuilder.h in Headers */ = {isa = PBXBuildFile; fileRef = FAF6C9C223C2DE2900D7B5BC /* SpvBuilder.h */; };
 		FAF6C9DC23C2DE2900D7B5BC /* SpvPostProcess.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAF6C9C323C2DE2900D7B5BC /* SpvPostProcess.cpp */; };
 		FAF6C9DD23C2DE2900D7B5BC /* SpvPostProcess.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAF6C9C323C2DE2900D7B5BC /* SpvPostProcess.cpp */; };
@@ -1332,8 +1338,6 @@
 		FAF6C9EF23C2DE2900D7B5BC /* disassemble.h in Headers */ = {isa = PBXBuildFile; fileRef = FAF6C9D123C2DE2900D7B5BC /* disassemble.h */; };
 		FAF6C9F023C2DE2900D7B5BC /* GlslangToSpv.h in Headers */ = {isa = PBXBuildFile; fileRef = FAF6C9D223C2DE2900D7B5BC /* GlslangToSpv.h */; };
 		FAF6C9F123C2DE2900D7B5BC /* GLSL.std.450.h in Headers */ = {isa = PBXBuildFile; fileRef = FAF6C9D323C2DE2900D7B5BC /* GLSL.std.450.h */; };
-		FAF6C9F223C2DE2900D7B5BC /* SPVRemapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAF6C9D423C2DE2900D7B5BC /* SPVRemapper.cpp */; };
-		FAF6C9F323C2DE2900D7B5BC /* SPVRemapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAF6C9D423C2DE2900D7B5BC /* SPVRemapper.cpp */; };
 		FAF6C9F423C2DE2900D7B5BC /* Logger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAF6C9D523C2DE2900D7B5BC /* Logger.cpp */; };
 		FAF6C9F523C2DE2900D7B5BC /* Logger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FAF6C9D523C2DE2900D7B5BC /* Logger.cpp */; };
 		FAF6C9F623C2DE2900D7B5BC /* hex_float.h in Headers */ = {isa = PBXBuildFile; fileRef = FAF6C9D623C2DE2900D7B5BC /* hex_float.h */; };
@@ -1421,6 +1425,9 @@
 		D91C76142DE3D0A2001FC408 /* visibility.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = visibility.h; sourceTree = "<group>"; };
 		D923E7D2296B85B9002FF1B3 /* harfbuzz.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = harfbuzz.xcframework; path = ios/libraries/harfbuzz.xcframework; sourceTree = "<group>"; };
 		D93660F72D1C727C00C0EC4B /* Touch.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Touch.cpp; sourceTree = "<group>"; };
+		D93970463009459C00A8CCAD /* qoi.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = qoi.h; sourceTree = "<group>"; };
+		D9397048300945BA00A8CCAD /* QOIHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = QOIHandler.h; sourceTree = "<group>"; };
+		D9397049300945BA00A8CCAD /* QOIHandler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = QOIHandler.cpp; sourceTree = "<group>"; };
 		D943E58C2A24D56000D80361 /* PhysfsIo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PhysfsIo.cpp; sourceTree = "<group>"; };
 		D943E58D2A24D56000D80361 /* PhysfsIo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PhysfsIo.h; sourceTree = "<group>"; };
 		D9596F602CBAC93800BE58C1 /* SDL3.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = SDL3.xcframework; path = shared/Frameworks/SDL3.xcframework; sourceTree = "<group>"; };
@@ -1435,7 +1442,6 @@
 		D9DB6E282B4B40970037A1F6 /* span.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = span.h; sourceTree = "<group>"; };
 		D9DB6E332B4B41100037A1F6 /* ResourceLimits.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ResourceLimits.cpp; sourceTree = "<group>"; };
 		D9DB6E382B4B41570037A1F6 /* NonSemanticDebugPrintf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NonSemanticDebugPrintf.h; sourceTree = "<group>"; };
-		D9DB6E392B4B41570037A1F6 /* NonSemanticShaderDebugInfo100.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NonSemanticShaderDebugInfo100.h; sourceTree = "<group>"; };
 		D9DB6E3A2B4B41570037A1F6 /* GLSL.ext.ARM.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GLSL.ext.ARM.h; sourceTree = "<group>"; };
 		D9DB6E3B2B4B41580037A1F6 /* GLSL.ext.QCOM.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GLSL.ext.QCOM.h; sourceTree = "<group>"; };
 		D9DB6E442B4B80E80037A1F6 /* build_info.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = build_info.h; sourceTree = "<group>"; };
@@ -1446,6 +1452,10 @@
 		D9F0C2D02C680A5500BB2D25 /* OpenSSLConnection.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OpenSSLConnection.cpp; sourceTree = "<group>"; };
 		D9F0C2D12C680A5500BB2D25 /* OpenSSLConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OpenSSLConnection.h; sourceTree = "<group>"; };
 		D9F0C2D22C680A5500BB2D25 /* UnixLibraryLoader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UnixLibraryLoader.cpp; sourceTree = "<group>"; };
+		D9F318AD3013F85300CFB9D0 /* NonSemanticShaderDebugInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NonSemanticShaderDebugInfo.h; sourceTree = "<group>"; };
+		D9F318B3301AE2E100CFB9D0 /* WEBPHandler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = WEBPHandler.h; sourceTree = "<group>"; };
+		D9F318B4301AE2E100CFB9D0 /* WEBPHandler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WEBPHandler.cpp; sourceTree = "<group>"; };
+		D9F318B8301AE2FE00CFB9D0 /* simplewebp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = simplewebp.h; sourceTree = "<group>"; };
 		FA08F5AE16C7525600F007B5 /* liblove-macosx.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = "liblove-macosx.plist"; path = "macosx/liblove-macosx.plist"; sourceTree = "<group>"; };
 		FA0A3A5D23366CE9001C269E /* floattypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = floattypes.h; sourceTree = "<group>"; };
 		FA0A3A5E23366CE9001C269E /* floattypes.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = floattypes.cpp; sourceTree = "<group>"; };
@@ -2293,7 +2303,6 @@
 		FAF140211E20934C00F898D2 /* ossource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ossource.cpp; sourceTree = "<group>"; };
 		FAF140291E20934C00F898D2 /* ShaderLang.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ShaderLang.h; sourceTree = "<group>"; };
 		FAF1889C1E9DA834008C1479 /* Optional.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Optional.h; sourceTree = "<group>"; };
-		FAF6C9C123C2DE2900D7B5BC /* SPVRemapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SPVRemapper.h; sourceTree = "<group>"; };
 		FAF6C9C223C2DE2900D7B5BC /* SpvBuilder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SpvBuilder.h; sourceTree = "<group>"; };
 		FAF6C9C323C2DE2900D7B5BC /* SpvPostProcess.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SpvPostProcess.cpp; sourceTree = "<group>"; };
 		FAF6C9C423C2DE2900D7B5BC /* SpvTools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SpvTools.h; sourceTree = "<group>"; };
@@ -2311,7 +2320,6 @@
 		FAF6C9D123C2DE2900D7B5BC /* disassemble.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = disassemble.h; sourceTree = "<group>"; };
 		FAF6C9D223C2DE2900D7B5BC /* GlslangToSpv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GlslangToSpv.h; sourceTree = "<group>"; };
 		FAF6C9D323C2DE2900D7B5BC /* GLSL.std.450.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GLSL.std.450.h; sourceTree = "<group>"; };
-		FAF6C9D423C2DE2900D7B5BC /* SPVRemapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SPVRemapper.cpp; sourceTree = "<group>"; };
 		FAF6C9D523C2DE2900D7B5BC /* Logger.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Logger.cpp; sourceTree = "<group>"; };
 		FAF6C9D623C2DE2900D7B5BC /* hex_float.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hex_float.h; sourceTree = "<group>"; };
 		FAF6C9D723C2DE2900D7B5BC /* Logger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Logger.h; sourceTree = "<group>"; };
@@ -2399,6 +2407,14 @@
 			sourceTree = "<group>";
 			usesTabs = 1;
 		};
+		D93970473009459C00A8CCAD /* qoi */ = {
+			isa = PBXGroup;
+			children = (
+				D93970463009459C00A8CCAD /* qoi.h */,
+			);
+			path = qoi;
+			sourceTree = "<group>";
+		};
 		D9DB6E312B4B41100037A1F6 /* ResourceLimits */ = {
 			isa = PBXGroup;
 			children = (
@@ -2418,6 +2434,14 @@
 				D9F0C2D22C680A5500BB2D25 /* UnixLibraryLoader.cpp */,
 			);
 			path = generic;
+			sourceTree = "<group>";
+		};
+		D9F318B9301AE2FE00CFB9D0 /* simplewebp */ = {
+			isa = PBXGroup;
+			children = (
+				D9F318B8301AE2FE00CFB9D0 /* simplewebp.h */,
+			);
+			path = simplewebp;
 			sourceTree = "<group>";
 		};
 		FA08F5AC16C751BA00F007B5 /* Resources */ = {
@@ -2500,12 +2524,14 @@
 				FA0B79D31A958EA3000E1D17 /* glad */,
 				FAF13FBF1E20934C00F898D2 /* glslang */,
 				FA0B79D81A958EA3000E1D17 /* lodepng */,
-				FA94724527A6EE1B00817677 /* luahttps */,
 				FAAA3FD21F64B3AD00F89E99 /* lua53 */,
+				FA94724527A6EE1B00817677 /* luahttps */,
 				FA0B79DB1A958EA3000E1D17 /* luasocket */,
 				FAB17BE31ABFAA9000F9BA27 /* lz4 */,
 				FA0B7A141A958EA3000E1D17 /* noise1234 */,
 				FAC7CD591FE35E95006A60C7 /* physfs */,
+				D93970473009459C00A8CCAD /* qoi */,
+				D9F318B9301AE2FE00CFB9D0 /* simplewebp */,
 				FA18CEF123DCF67800263725 /* spirv_cross */,
 				FA0B7A171A958EA3000E1D17 /* stb */,
 				FA1557BE1CE90A2C00AFF582 /* tinyexr */,
@@ -3044,22 +3070,26 @@
 		FA0B7BC81A95902C000E1D17 /* magpie */ = {
 			isa = PBXGroup;
 			children = (
-				FA41A3C61C0A1F950084430C /* ASTCHandler.cpp */,
 				FA41A3C71C0A1F950084430C /* ASTCHandler.h */,
-				FA0B7BCC1A95902C000E1D17 /* ddsHandler.cpp */,
+				FA41A3C61C0A1F950084430C /* ASTCHandler.cpp */,
 				FA0B7BCD1A95902C000E1D17 /* ddsHandler.h */,
-				FA1557C11CE90BD200AFF582 /* EXRHandler.cpp */,
+				FA0B7BCC1A95902C000E1D17 /* ddsHandler.cpp */,
 				FA1557C21CE90BD200AFF582 /* EXRHandler.h */,
-				FA0B7BD81A95902C000E1D17 /* KTXHandler.cpp */,
+				FA1557C11CE90BD200AFF582 /* EXRHandler.cpp */,
 				FA0B7BD91A95902C000E1D17 /* KTXHandler.h */,
-				FA0B7BDA1A95902C000E1D17 /* PKMHandler.cpp */,
+				FA0B7BD81A95902C000E1D17 /* KTXHandler.cpp */,
 				FA0B7BDB1A95902C000E1D17 /* PKMHandler.h */,
-				FA0B7BDC1A95902C000E1D17 /* PNGHandler.cpp */,
+				FA0B7BDA1A95902C000E1D17 /* PKMHandler.cpp */,
 				FA0B7BDD1A95902C000E1D17 /* PNGHandler.h */,
-				FA0B7BDE1A95902C000E1D17 /* PVRHandler.cpp */,
+				FA0B7BDC1A95902C000E1D17 /* PNGHandler.cpp */,
 				FA0B7BDF1A95902C000E1D17 /* PVRHandler.h */,
-				FA0B7BE01A95902C000E1D17 /* STBHandler.cpp */,
+				FA0B7BDE1A95902C000E1D17 /* PVRHandler.cpp */,
+				D9397048300945BA00A8CCAD /* QOIHandler.h */,
+				D9397049300945BA00A8CCAD /* QOIHandler.cpp */,
 				FA0B7BE11A95902C000E1D17 /* STBHandler.h */,
+				FA0B7BE01A95902C000E1D17 /* STBHandler.cpp */,
+				D9F318B3301AE2E100CFB9D0 /* WEBPHandler.h */,
+				D9F318B4301AE2E100CFB9D0 /* WEBPHandler.cpp */,
 			);
 			path = magpie;
 			sourceTree = "<group>";
@@ -4079,14 +4109,12 @@
 				FAF6C9D723C2DE2900D7B5BC /* Logger.h */,
 				FAF6C9D523C2DE2900D7B5BC /* Logger.cpp */,
 				D9DB6E382B4B41570037A1F6 /* NonSemanticDebugPrintf.h */,
-				D9DB6E392B4B41570037A1F6 /* NonSemanticShaderDebugInfo100.h */,
+				D9F318AD3013F85300CFB9D0 /* NonSemanticShaderDebugInfo.h */,
 				D91C76102DE3D088001FC408 /* spirv.hpp11 */,
 				FAF6C9C223C2DE2900D7B5BC /* SpvBuilder.h */,
 				FAF6C9CA23C2DE2900D7B5BC /* SpvBuilder.cpp */,
 				FAF6C9CF23C2DE2900D7B5BC /* spvIR.h */,
 				FAF6C9C323C2DE2900D7B5BC /* SpvPostProcess.cpp */,
-				FAF6C9C123C2DE2900D7B5BC /* SPVRemapper.h */,
-				FAF6C9D423C2DE2900D7B5BC /* SPVRemapper.cpp */,
 				FAF6C9C423C2DE2900D7B5BC /* SpvTools.h */,
 				FAF6C9C523C2DE2900D7B5BC /* SpvTools.cpp */,
 				D91C76112DE3D088001FC408 /* spvUtil.h */,
@@ -4120,6 +4148,7 @@
 				FA0B7DB31A95902C000E1D17 /* wrap_Image.h in Headers */,
 				FAF140591E20934C00F898D2 /* Common.h in Headers */,
 				FA0B7EC31A95902C000E1D17 /* threads.h in Headers */,
+				D9F318BA301AE2FE00CFB9D0 /* simplewebp.h in Headers */,
 				FA0B7AC21A958EA3000E1D17 /* enet.h in Headers */,
 				FA4F2BA71DE1E36400CA37D7 /* RecordingDevice.h in Headers */,
 				FA0B7E201A95902C000E1D17 /* Physics.h in Headers */,
@@ -4138,7 +4167,6 @@
 				FAF6C9EF23C2DE2900D7B5BC /* disassemble.h in Headers */,
 				FA18CF4123DCF67900263725 /* spirv_common.hpp in Headers */,
 				FAC7CD901FE35E95006A60C7 /* physfs_miniz.h in Headers */,
-				D9DB6E3F2B4B41580037A1F6 /* NonSemanticShaderDebugInfo100.h in Headers */,
 				FA0B791D1A958E3B000E1D17 /* b64.h in Headers */,
 				FA0B7DC61A95902C000E1D17 /* wrap_JoystickModule.h in Headers */,
 				FA0B7D201A95902C000E1D17 /* ImageRasterizer.h in Headers */,
@@ -4238,6 +4266,7 @@
 				FA18CF3D23DCF67900263725 /* GLSL.std.450.h in Headers */,
 				FA18CF3E23DCF67900263725 /* spirv_cross_containers.hpp in Headers */,
 				FA18CF1B23DCF67900263725 /* thread_group.hpp in Headers */,
+				D939704A300945BA00A8CCAD /* QOIHandler.h in Headers */,
 				FAF140861E20934C00F898D2 /* ParseHelper.h in Headers */,
 				FA0B7CE71A95902C000E1D17 /* wrap_Source.h in Headers */,
 				FA0B7B231A958EA3000E1D17 /* luasocket.h in Headers */,
@@ -4247,7 +4276,6 @@
 				FA0B7B391A958EA3000E1D17 /* wuff_internal.h in Headers */,
 				FAC7CD771FE35E95006A60C7 /* physfs_internal.h in Headers */,
 				FA0B7D881A95902C000E1D17 /* ImageData.h in Headers */,
-				FAF6C9DA23C2DE2900D7B5BC /* SPVRemapper.h in Headers */,
 				FA0B7EE11A95902D000E1D17 /* wrap_Touch.h in Headers */,
 				FA9D8DDB1DEF8411002CD881 /* Stream.h in Headers */,
 				FAF6C9E823C2DE2900D7B5BC /* GLSL.ext.EXT.h in Headers */,
@@ -4293,6 +4321,7 @@
 				FA0B7CEA1A95902C000E1D17 /* Event.h in Headers */,
 				FA0B7E351A95902C000E1D17 /* WeldJoint.h in Headers */,
 				FABDA9CB2552448300B5C523 /* b2_pulley_joint.h in Headers */,
+				D9F318B7301AE2E100CFB9D0 /* WEBPHandler.h in Headers */,
 				FA0B7E2F1A95902C000E1D17 /* RopeJoint.h in Headers */,
 				FA0B7D141A95902C000E1D17 /* Font.h in Headers */,
 				FA0B7E591A95902C000E1D17 /* wrap_Joint.h in Headers */,
@@ -4491,6 +4520,7 @@
 				FA0B79261A958E3B000E1D17 /* Exception.h in Headers */,
 				D9DB6E402B4B41580037A1F6 /* GLSL.ext.ARM.h in Headers */,
 				FA0B7D4D1A95902C000E1D17 /* Shader.h in Headers */,
+				D9F318AE3013F85300CFB9D0 /* NonSemanticShaderDebugInfo.h in Headers */,
 				FA0B793D1A958E3B000E1D17 /* runtime.h in Headers */,
 				FAF6C9E323C2DE2900D7B5BC /* GLSL.ext.AMD.h in Headers */,
 				FA57FB9A1AE1993600F2AD6D /* noise1234.h in Headers */,
@@ -4685,6 +4715,7 @@
 				FA0B7AB61A958EA3000E1D17 /* ddsparse.cpp in Sources */,
 				FABDA9F42552448300B5C523 /* b2_chain_shape.cpp in Sources */,
 				FA0B7D221A95902C000E1D17 /* Rasterizer.cpp in Sources */,
+				D939704C300945BA00A8CCAD /* QOIHandler.cpp in Sources */,
 				FAF6C9E223C2DE2900D7B5BC /* InReadableOrder.cpp in Sources */,
 				FAF140BC1E20934C00F898D2 /* ossource.cpp in Sources */,
 				FA0B7D7D1A95902C000E1D17 /* Texture.cpp in Sources */,
@@ -4957,6 +4988,7 @@
 				FA0B7B381A958EA3000E1D17 /* wuff_internal.c in Sources */,
 				FA0B7DF81A95902C000E1D17 /* Body.cpp in Sources */,
 				FABDA9EE2552448300B5C523 /* b2_circle_shape.cpp in Sources */,
+				D9F318B5301AE2E100CFB9D0 /* WEBPHandler.cpp in Sources */,
 				FA4F2BB41DE1E4BD00CA37D7 /* RecordingDevice.cpp in Sources */,
 				FA0B7DF51A95902C000E1D17 /* wrap_Mouse.cpp in Sources */,
 				FA0B7E861A95902C000E1D17 /* CoreAudioDecoder.cpp in Sources */,
@@ -5024,7 +5056,6 @@
 				FAF6C9FB23C2DE2900D7B5BC /* disassemble.cpp in Sources */,
 				FA18CEDD23DBC6E000263725 /* Metal.mm in Sources */,
 				FAE64A822071363100BC7981 /* physfs_archiver_grp.c in Sources */,
-				FAF6C9F323C2DE2900D7B5BC /* SPVRemapper.cpp in Sources */,
 				FA0B79331A958E3B000E1D17 /* Object.cpp in Sources */,
 				FAE64A8D2071363500BC7981 /* physfs_platform_apple.m in Sources */,
 				FA0B7E5B1A95902C000E1D17 /* wrap_MotorJoint.cpp in Sources */,
@@ -5118,6 +5149,7 @@
 				FA0B7DD01A95902C000E1D17 /* love.cpp in Sources */,
 				FA0B7D211A95902C000E1D17 /* Rasterizer.cpp in Sources */,
 				FABDA9F32552448300B5C523 /* b2_chain_shape.cpp in Sources */,
+				D939704B300945BA00A8CCAD /* QOIHandler.cpp in Sources */,
 				FAC7CD7C1FE35E95006A60C7 /* physfs_archiver_slb.c in Sources */,
 				FAF6C9FA23C2DE2900D7B5BC /* disassemble.cpp in Sources */,
 				FA18CF2C23DCF67900263725 /* spirv_cross.cpp in Sources */,
@@ -5390,6 +5422,7 @@
 				FA0B7D481A95902C000E1D17 /* Polyline.cpp in Sources */,
 				217DFC111D9F6D490055D849 /* usocket.c in Sources */,
 				FAC7CD891FE35E95006A60C7 /* physfs_archiver_dir.c in Sources */,
+				D9F318B6301AE2E100CFB9D0 /* WEBPHandler.cpp in Sources */,
 				FAF140751E20934C00F898D2 /* IntermTraverse.cpp in Sources */,
 				FA0B7CE21A95902C000E1D17 /* wrap_Audio.cpp in Sources */,
 				FACA06AC293EE5CD001A2557 /* wrap_Sensor.cpp in Sources */,
@@ -5499,7 +5532,6 @@
 				FA0B7D281A95902C000E1D17 /* wrap_GlyphData.cpp in Sources */,
 				FABDA9F92552448300B5C523 /* b2_polygon_shape.cpp in Sources */,
 				FA0B7DE21A95902C000E1D17 /* wrap_RandomGenerator.cpp in Sources */,
-				FAF6C9F223C2DE2900D7B5BC /* SPVRemapper.cpp in Sources */,
 				FA18CEEF23DC9B3E00263725 /* Texture.mm in Sources */,
 				FABDAA012552448300B5C523 /* b2_distance.cpp in Sources */,
 				FACA02F61F5E396B0084B28F /* wrap_DataModule.cpp in Sources */,

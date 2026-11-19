@@ -223,13 +223,17 @@ function love.errorhandler(msg)
 
 	error_printer(msg, 2)
 
-	if not love.window or not love.graphics or not love.event then
+	if not love.window then
 		return
 	end
 
-	if not love.graphics.isCreated() or not love.window.isOpen() then
-		local success, status = pcall(love.window.setMode, 800, 600)
+	if not love.graphics or not love.event or not love.graphics.isCreated() or not love.window.isOpen() then
+		local success, status
+		if love.graphics and love.event then
+			success, status = pcall(love.window.setMode, 800, 600)
+		end
 		if not success or not status then
+			love.window.showMessageBox("Initialization error", msg, "error", false)
 			return
 		end
 	end
@@ -291,7 +295,7 @@ function love.errorhandler(msg)
 
 	local function draw()
 		if not love.graphics.isActive() then return end
-		local pos = 70
+		local pos = 60
 		love.graphics.clear(89/255, 157/255, 220/255)
 		love.graphics.printf(p, pos, pos, love.graphics.getWidth() - pos)
 		love.graphics.present()

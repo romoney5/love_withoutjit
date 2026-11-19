@@ -326,10 +326,13 @@ void Shader::buildLocalUniforms(const spirv_cross::CompilerMSL &msl, const spirv
 		UniformInfo &u = *(uniformit->second);
 		u.active = true;
 
-		if (u.dataSize > 0)
+		if (u.dataSizeAllocated > 0)
 			continue;
 
-		u.dataSize = membersize;
+		// get_declared_struct_member_size should be the padded size, which can be larger than
+		// the tightly packed size that external code will use with UniformInfo.
+		u.dataSizeAllocated = membersize;
+		u.dataSizePacked = getUniformDataSizePacked(u);
 		u.data = localUniformStagingData + offset;
 
 		const auto &reflectionit = reflection.localUniformInitializerValues.find(u.name);
@@ -337,7 +340,7 @@ void Shader::buildLocalUniforms(const spirv_cross::CompilerMSL &msl, const spirv
 		{
 			const auto &values = reflectionit->second;
 			if (!values.empty())
-				memcpy(u.data, values.data(), std::min(u.dataSize, values.size() * sizeof(LocalUniformValue)));
+				memcpy(u.data, values.data(), std::min(u.dataSizePacked, values.size() * sizeof(LocalUniformValue)));
 		}
 
 		BuiltinUniform builtin = BUILTIN_MAX_ENUM;
@@ -534,7 +537,10 @@ void Shader::compileFromGLSLang(id<MTLDevice> device, const glslang::TProgram &p
 		}
 
 		CompilerMSL::Options options;
-		options.set_msl_version(2, 1);
+		if (@available(macOS 14.0, iOS 17.0, *))
+			options.set_msl_version(3, 1); // For image atomics.
+		else
+			options.set_msl_version(2, 1);
 		options.texture_buffer_native = true;
 #ifdef LOVE_IOS
 		options.platform = CompilerMSL::Options::iOS;
@@ -553,8 +559,9 @@ void Shader::compileFromGLSLang(id<MTLDevice> device, const glslang::TProgram &p
 
 		MTLCompileOptions *opts = [MTLCompileOptions new];
 
-		// Silences warning. We already only use metal on these OS versions.
-		if (@available(macOS 10.14, iOS 12.0, *))
+		if (@available(macOS 14.0, iOS 17.0, *))
+			opts.languageVersion = MTLLanguageVersion3_1; // For image atomics.
+		else
 			opts.languageVersion = MTLLanguageVersion2_1;
 
 		NSError *err = nil;
@@ -742,7 +749,7 @@ const Shader::UniformInfo *Shader::getUniformInfo(BuiltinUniform builtin) const
 
 void Shader::updateUniform(const UniformInfo *info, int count)
 {
-	if (info->dataSize == 0)
+	if (info->dataSizePacked == 0)
 		return;
 
 	if (current == this)
@@ -812,6 +819,7 @@ id<MTLRenderPipelineState> Shader::getCachedRenderPipeline(graphics::Graphics *g
 	desc.vertexFunction = functions[SHADERSTAGE_VERTEX];
 	desc.fragmentFunction = functions[SHADERSTAGE_PIXEL];
 
+	desc.inputPrimitiveTopology = (MTLPrimitiveTopologyClass)key.topology;
 	desc.rasterSampleCount = std::max((int) key.msaa, 1);
 
 	for (int i = 0; i < MAX_COLOR_RENDER_TARGETS; i++)
@@ -856,16 +864,11 @@ id<MTLRenderPipelineState> Shader::getCachedRenderPipeline(graphics::Graphics *g
 	auto dsformat = (PixelFormat) key.depthStencilFormat;
 	if (isPixelFormatDepthStencil(dsformat))
 	{
-		if (@available(macOS 10.15, iOS 13, *))
-		{
-			// We already don't really support metal on older systems, this just
-			// silences a compiler warning about it.
-			auto formatdesc = Metal::convertPixelFormat(device, dsformat);
-			if (isPixelFormatDepth(dsformat))
-				desc.depthAttachmentPixelFormat = formatdesc.format;
-			if (isPixelFormatStencil(dsformat))
-				desc.stencilAttachmentPixelFormat = formatdesc.format;
-		}
+		auto formatdesc = Metal::convertPixelFormat(device, dsformat);
+		if (isPixelFormatDepth(dsformat))
+			desc.depthAttachmentPixelFormat = formatdesc.format;
+		if (isPixelFormatStencil(dsformat))
+			desc.stencilAttachmentPixelFormat = formatdesc.format;
 	}
 
 	VertexAttributes attributes;

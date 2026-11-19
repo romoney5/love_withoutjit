@@ -376,6 +376,16 @@ int luax_checkintflag(lua_State *L, int table_index, const char *key)
 	return retval;
 }
 
+void luax_checkunsetflag(lua_State *L, int table_index, const char *key)
+{
+	lua_getfield(L, table_index, key);
+	if (!lua_isnoneornil(L, -1))
+	{
+		std::string err = "expected field '" + std::string(key) + "' to be unset in table";
+		luaL_argerror(L, table_index, err.c_str());
+	}
+}
+
 int luax_assert_argc(lua_State *L, int min)
 {
 	int argc = lua_gettop(L);
@@ -1062,6 +1072,13 @@ lua_State *luax_getpinnedthread(lua_State *L)
 	lua_State *thread = lua_tothread(L, -1);
 	lua_pop(L, 1);
 	return thread;
+}
+
+extern "C" int luax_module_threaderror(lua_State *L)
+{
+	// Module name is the first param in the stack.
+	const char *name = luaL_checkstring(L, 1);
+	return luaL_error(L, "The %s module cannot be used in thread code.", name);
 }
 
 void luax_markdeprecated(lua_State *L, int level, const char *name, APIType api)

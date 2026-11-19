@@ -35,7 +35,7 @@ static VkBufferUsageFlags getUsageBit(BufferUsage mode)
 	case BUFFERUSAGE_VERTEX: return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 	case BUFFERUSAGE_INDEX: return VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 	case BUFFERUSAGE_UNIFORM: return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-	case BUFFERUSAGE_TEXEL: return VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+	case BUFFERUSAGE_TEXEL: return VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 	case BUFFERUSAGE_SHADER_STORAGE: return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 	case BUFFERUSAGE_INDIRECT_ARGUMENTS: return VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 	default:
@@ -97,6 +97,9 @@ Buffer::Buffer(love::graphics::Graphics *gfx, const Settings &settings, const st
 
 bool Buffer::loadVolatile()
 {
+	if (buffer != VK_NULL_HANDLE)
+		return true;
+
 	allocator = vgfx->getVmaAllocator();
 
 	VkBufferCreateInfo bufferInfo{};

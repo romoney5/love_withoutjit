@@ -1003,6 +1003,119 @@ love.test.graphics.Shader = function(test)
   else
     test:assertTrue(true, "skip shader IO test")
   end
+
+  if love.graphics.getSupported().glsl4 and love.graphics.getSupported().vertexwrite and love.graphics.getSupported().pixelwrite then
+    local name = love.graphics.getRendererInfo()
+    local isGLES = name:match("OpenGL ES") ~= nil
+
+    local success, message = love.graphics.validateShader(isGLES, [[
+      #pragma language glsl4
+
+      #ifdef PIXEL
+      buffer ColorBuffer
+      {
+        vec4 colors[];
+      };
+
+      void effect()
+      {
+        colors[0] = VaryingColor;
+        love_PixelColor = colors[0];
+      }
+      #endif
+
+      #ifdef VERTEX
+      vec4 position(mat4 m, vec4 p)
+      {
+        return m * p;
+      }
+      #endif
+    ]])
+
+    test:assertFalse(success, "shader should not validate (SSBO)")
+    test:assertEquals("Shader validation error:\nStorage Buffer block 'ColorBuffer' must be marked as readonly in vertex and pixel shaders unless explicitly enabled.", message)
+
+    success, message = love.graphics.validateShader(isGLES, [[
+      #pragma language glsl4
+
+      buffer ColorBuffer
+      {
+        vec4 colors[];
+      };
+
+      void effect()
+      {
+        colors[0] = VaryingColor;
+        love_PixelColor = colors[0];
+      }
+    ]], { write = true })
+
+    test:assertTrue(success, "shader should validate (SSBO)")
+    test:assertEquals(nil, message)
+
+    success, message = love.graphics.validateShader(isGLES, [[
+        #pragma language glsl4
+
+        layout(rgba32f) uniform readonly highp image2D RGBAImage;
+
+        void effect()
+        {
+          love_PixelColor = VaryingColor * imageLoad(RGBAImage, ivec2(gl_FragCoord.xy));
+        }
+    ]])
+      
+    test:assertFalse(success, "shader should not validate (image)")
+    test:assertEquals("Shader validation error:\nStorage Texture uniform variables (image2D, etc) are only allowed in compute shaders unless explicitly enabled.", message)
+    
+    success, message = love.graphics.validateShader(isGLES, [[
+      #pragma language glsl4
+
+      #ifdef GL_ES
+        precision highp float;
+      #endif
+
+      layout(rgba32f) uniform readonly highp image2D RGBAImage;
+
+      void effect()
+      {
+        love_PixelColor = VaryingColor * imageLoad(RGBAImage, ivec2(gl_FragCoord.xy));
+      }
+    ]], { write = true })
+
+    test:assertTrue(success, "shader should validate (image)")
+    test:assertEquals(nil, message)
+  else
+    test:assertTrue(true, "skip feature test")
+  end
+
+  local shader9 = love.graphics.newShader [[
+    #ifdef PIXEL
+
+    layout (location = 0) out vec2 OutVec2;
+
+    void pixelmain()
+    {
+      OutVec2 = vec2(1.0, 0.0);
+    }
+
+    #endif
+  ]]
+
+  love.graphics.push("all")
+    love.graphics.setCanvas(canvas)
+    love.graphics.setShader(shader9)
+    local res, err = pcall(love.graphics.rectangle, "fill", 0, 0, 256, 256)
+  love.graphics.pop()
+
+  test:assertEquals("Pixel shader output 'OutVec2' has only writes 2 components but canvas at index 1 has 4 components", err, "pixel output component validation")
+
+  local canvas5 = love.graphics.newCanvas(16, 16)
+  love.graphics.push("all")
+    love.graphics.setCanvas(canvas, canvas5)
+    local res, err = pcall(love.graphics.rectangle, "fill", 0, 0, 256, 256)
+  love.graphics.pop()
+
+  test:assertEquals("Missing pixel shader output for canvas at index 2", err, "attachment validation")
 end
 
 
@@ -2129,6 +2242,82 @@ love.test.graphics.setCanvas = function(test)
   test:compareImg(imgdata)
   local imgdata2 = love.graphics.readbackTexture(canvas2, 1, 2) -- readback mipmap
   test:compareImg(imgdata2)
+
+  if love.graphics.getSupported().shaderlayer and love.graphics.getSupported().glsl4 then
+    local shader = love.graphics.newShader [[
+      #pragma language glsl4
+
+      #ifdef VERTEX
+
+      restrict readonly buffer ColorsBuffer
+      {
+        vec4 Colors[];
+      };
+
+      vec4 position(mat4 viewModelTransform, vec4 vertexPosition)
+      {
+        VaryingColor *= Colors[gl_InstanceID];
+        gl_Layer = gl_InstanceID;
+        return viewModelTransform * vertexPosition;
+      }
+
+      #endif
+    ]]
+
+    local mesh = love.graphics.newMesh({
+      { location = 0, name = "VertexPosition", format = "floatvec4" },
+      { location = 1, name = "VertexColor", format = "floatvec4" },
+    }, {
+      { 0, 0, 0, 1, 1, 1, 1, 1 },
+      { 32, 0, 0, 1, 1, 1, 1, 1 },
+      { 32, 32, 0, 1, 1, 1, 1, 1 },
+      { 32, 32, 0, 1, 1, 1, 1, 1 },
+      { 0, 32, 0, 1, 1, 1, 1, 1 },
+      { 0, 0, 0, 1, 1, 1, 1, 1 },
+    }, "triangles")
+
+    local arrayCanvas = love.graphics.newTexture(256, 256, 4, { canvas = true })
+    local buffer = love.graphics.newBuffer(
+      {
+        { location = 0, name = "color", format = "floatvec4" }
+      },
+      4,
+      { shaderstorage = true }
+    )
+    shader:send("ColorsBuffer", buffer)
+
+    buffer:setArrayData({
+      1, 0, 0, 1,
+      0, 1, 0, 1,
+      0, 0, 1, 1,
+      1, 0, 1, 1
+    })
+
+    love.graphics.setShader(shader)
+    love.graphics.setCanvas({
+      arrayCanvas,
+      shaderlayer = true,
+    })
+
+    love.graphics.clear(1, 1, 1, 1)
+    
+    love.graphics.drawInstanced(mesh, 4, 10, 10)
+
+    love.graphics.setShader()
+    love.graphics.setCanvas()
+    
+    local layer1data = love.graphics.readbackTexture(arrayCanvas, 1)
+    test:compareImg(layer1data)
+  
+    local layer2data = love.graphics.readbackTexture(arrayCanvas, 2)
+    test:compareImg(layer2data)
+  
+    local layer3data = love.graphics.readbackTexture(arrayCanvas, 3)
+    test:compareImg(layer3data)
+
+    local layer4data = love.graphics.readbackTexture(arrayCanvas, 4)
+    test:compareImg(layer4data)
+  end
 end
 
 
@@ -2668,6 +2857,31 @@ love.test.graphics.translate = function(test)
     love.graphics.translate(0, -5)
     love.graphics.rectangle('fill', 0, 0, 1, 1)
     love.graphics.setColor(1, 1, 1, 1)
+  love.graphics.setCanvas()
+  local imgdata = love.graphics.readbackTexture(canvas)
+  test:compareImg(imgdata)
+end
+
+
+-- love.graphics.resetProjection
+love.test.graphics.resetProjection = function(test)
+  local canvas = love.graphics.newCanvas(16, 16)
+  love.graphics.setCanvas(canvas)
+    love.graphics.clear(0, 0, 0, 1)
+    love.graphics.origin()
+    -- draw red pixel at (0, 4) using default projection
+    love.graphics.setColor(1, 0, 0, 1)
+    love.graphics.rectangle('fill', 0, 4, 1, 1)
+    love.graphics.setProjection("row", 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0)
+    -- draw a green pixel at that should not show on screen after projection.
+    -- if setProjection doesn't affect it, the green pixel will show and fail
+    -- the test.
+    love.graphics.setColor(0, 1, 0, 1)
+    love.graphics.rectangle('fill', 2, 2, 1, 1)
+    -- draw a blue pixel at (8, 8) after resetting projection
+    love.graphics.resetProjection()
+    love.graphics.setColor(0, 0, 1, 1)
+    love.graphics.rectangle('fill', 8, 8, 1, 1)
   love.graphics.setCanvas()
   local imgdata = love.graphics.readbackTexture(canvas)
   test:compareImg(imgdata)

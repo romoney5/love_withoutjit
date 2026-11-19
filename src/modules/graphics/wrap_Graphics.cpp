@@ -254,17 +254,30 @@ int w_getQuadIndexBuffer(lua_State *L)
 	return 1;
 }
 
-static Graphics::RenderTarget checkRenderTarget(lua_State *L, int idx)
+static Graphics::RenderTarget checkRenderTarget(lua_State *L, int idx, bool shaderLayer)
 {
 	lua_rawgeti(L, idx, 1);
 	Graphics::RenderTarget target(luax_checktexture(L, -1), 0);
 	lua_pop(L, 1);
 
 	TextureType type = target.texture->getTextureType();
-	if (type == TEXTURE_2D_ARRAY || type == TEXTURE_VOLUME)
-		target.slice = luax_checkintflag(L, idx, "layer") - 1;
-	else if (type == TEXTURE_CUBE)
-		target.slice = luax_checkintflag(L, idx, "face") - 1;
+	if (shaderLayer)
+	{
+		if (type == TEXTURE_2D_ARRAY)
+			luax_checkunsetflag(L, idx, "layer");
+		else if (type == TEXTURE_CUBE)
+			luax_checkunsetflag(L, idx, "layer");
+		else if (type == TEXTURE_VOLUME)
+			luaL_error(L, "can only bind single layer of volume texture");
+	}
+	else
+	{
+		TextureType type = target.texture->getTextureType();
+		if (type == TEXTURE_2D_ARRAY || type == TEXTURE_VOLUME)
+			target.slice = luax_checkintflag(L, idx, "layer") - 1;
+		else if (type == TEXTURE_CUBE)
+			target.slice = luax_checkintflag(L, idx, "face") - 1;
+	}
 
 	target.mipmap = luax_intflag(L, idx, "mipmap", 1) - 1;
 
@@ -276,7 +289,7 @@ int w_setCanvas(lua_State *L)
 	// called with none -> reset to default buffer
 	if (lua_isnoneornil(L, 1))
 	{
-		instance()->setRenderTarget();
+		luax_catchexcept(L, [&]() { instance()->setRenderTarget(); });
 		return 0;
 	}
 
@@ -289,17 +302,19 @@ int w_setCanvas(lua_State *L)
 		bool table_of_tables = lua_istable(L, -1);
 		lua_pop(L, 1);
 
+		targets.shaderLayer = luax_boolflag(L, 1, "shaderlayer", false);
+
 		for (int i = 1; i <= (int) luax_objlen(L, 1); i++)
 		{
 			lua_rawgeti(L, 1, i);
 
 			if (table_of_tables)
-				targets.colors.push_back(checkRenderTarget(L, -1));
+				targets.colors.push_back(checkRenderTarget(L, -1, targets.shaderLayer));
 			else
 			{
 				targets.colors.emplace_back(luax_checktexture(L, -1), 0);
 
-				if (targets.colors.back().texture->getTextureType() != TEXTURE_2D)
+				if (targets.colors.back().texture->getTextureType() != TEXTURE_2D && !targets.shaderLayer)
 					return luaL_error(L, "Non-2D textures must use the table-of-tables variant of setCanvas.");
 			}
 
@@ -312,7 +327,7 @@ int w_setCanvas(lua_State *L)
 		lua_getfield(L, 1, "depthstencil");
 		int dstype = lua_type(L, -1);
 		if (dstype == LUA_TTABLE)
-			targets.depthStencil = checkRenderTarget(L, -1);
+			targets.depthStencil = checkRenderTarget(L, -1, targets.shaderLayer);
 		else if (dstype == LUA_TBOOLEAN)
 			targets.temporaryRTFlags |= luax_toboolean(L, -1) ? (tempdepthflag | tempstencilflag) : 0;
 		else if (dstype != LUA_TNONE && dstype != LUA_TNIL)
@@ -397,7 +412,7 @@ int w_getCanvas(lua_State *L)
 		return 1;
 	}
 
-	bool shouldUseTablesVariant = targets.depthStencil.texture != nullptr;
+	bool shouldUseTablesVariant = targets.depthStencil.texture != nullptr || targets.shaderLayer;
 
 	if (!shouldUseTablesVariant)
 	{
@@ -425,6 +440,12 @@ int w_getCanvas(lua_State *L)
 		{
 			pushRenderTarget(L, targets.depthStencil);
 			lua_setfield(L, -2, "depthstencil");
+		}
+
+		if (targets.shaderLayer)
+		{
+			lua_pushboolean(L, true);
+			lua_setfield(L, -2, "shaderlayer");
 		}
 
 		return 1;
@@ -568,44 +589,44 @@ int w_setScissor(lua_State *L)
 		return 0;
 	}
 
-	Rect rect;
-	rect.x = (int) luaL_checkinteger(L, 1);
-	rect.y = (int) luaL_checkinteger(L, 2);
-	rect.w = (int) luaL_checkinteger(L, 3);
-	rect.h = (int) luaL_checkinteger(L, 4);
+	FRect rect;
+	rect.x = (float) luaL_checknumber(L, 1);
+	rect.y = (float) luaL_checknumber(L, 2);
+	rect.w = (float) luaL_checknumber(L, 3);
+	rect.h = (float) luaL_checknumber(L, 4);
 
 	if (rect.w < 0 || rect.h < 0)
 		return luaL_error(L, "Can't set scissor with negative width and/or height.");
 
-	instance()->setScissor(rect);
+	luax_catchexcept(L, [&]() { instance()->setScissor(rect); });
 	return 0;
 }
 
 int w_intersectScissor(lua_State *L)
 {
-	Rect rect;
-	rect.x = (int) luaL_checkinteger(L, 1);
-	rect.y = (int) luaL_checkinteger(L, 2);
-	rect.w = (int) luaL_checkinteger(L, 3);
-	rect.h = (int) luaL_checkinteger(L, 4);
+	FRect rect;
+	rect.x = (float) luaL_checknumber(L, 1);
+	rect.y = (float) luaL_checknumber(L, 2);
+	rect.w = (float) luaL_checknumber(L, 3);
+	rect.h = (float) luaL_checknumber(L, 4);
 
 	if (rect.w < 0 || rect.h < 0)
 		return luaL_error(L, "Can't set scissor with negative width and/or height.");
 
-	instance()->intersectScissor(rect);
+	luax_catchexcept(L, [&]() { instance()->intersectScissor(rect); });
 	return 0;
 }
 
 int w_getScissor(lua_State *L)
 {
-	Rect rect;
+	FRect rect;
 	if (!instance()->getScissor(rect))
 		return 0;
 
-	lua_pushinteger(L, rect.x);
-	lua_pushinteger(L, rect.y);
-	lua_pushinteger(L, rect.w);
-	lua_pushinteger(L, rect.h);
+	lua_pushnumber(L, rect.x);
+	lua_pushnumber(L, rect.y);
+	lua_pushnumber(L, rect.w);
+	lua_pushnumber(L, rect.h);
 
 	return 4;
 }
@@ -1426,7 +1447,8 @@ int w_newImageFont(lua_State *L)
 	love::font::Rasterizer *rasterizer = luax_checktype<love::font::Rasterizer>(L, 1);
 
 	// Create the font.
-	Font *font = instance()->newFont(rasterizer);
+	Font *font = nullptr;
+	luax_catchexcept(L, [&]() { font = instance()->newFont(rasterizer); });
 
 	// Push the type.
 	luax_pushtype(L, font);
@@ -1570,7 +1592,7 @@ static int w_getShaderSource(lua_State *L, int startidx, std::vector<std::string
 					{
 						const char *val = lua_tostring(L, -1);
 						if (val == nullptr)
-							luaL_argerror(L, optionsidx, "'defines' table values must be strings, numbers, or booleans.");
+							return luaL_argerror(L, optionsidx, "'defines' table values must be strings, numbers, or booleans.");
 						defval = val;
 					}
 				}
@@ -1586,6 +1608,20 @@ static int w_getShaderSource(lua_State *L, int startidx, std::vector<std::string
 		if (!lua_isnoneornil(L, -1))
 			options.debugName = luax_checkstring(L, -1);
 		lua_pop(L, 1);
+
+		for (int feature = 0; feature < Shader::FEATURE_MAX_ENUM; ++feature)
+		{
+			const char *featureKey;
+			if (Shader::getConstant((Shader::Feature)feature, featureKey))
+			{
+				lua_getfield(L, optionsidx, featureKey);
+				if (!lua_isnoneornil(L, -1))
+				{
+					options.features[feature] = lua_toboolean(L, -1);
+				}
+				lua_pop(L, 1);
+			}
+		}
 	}
 
 	return 0;
@@ -1602,7 +1638,7 @@ int w_newShader(lua_State *L)
 	{
 		Shader *shader = instance()->newShader(stages, options);
 		if (shader->isUsingDeprecatedTextureFunctions())
-			luax_markdeprecated(L, 1, "texture2D() or textureCube() function calls in shader code", API_CUSTOM, DEPRECATED_REPLACED, "texture() function calls");
+			luax_markdeprecated(L, 1, "texture2D() or texture3D() or textureCube() function calls in shader code", API_CUSTOM, DEPRECATED_REPLACED, "texture() function calls");
 		if (shader->isUsingDeprecatedTextureUniform())
 			luax_markdeprecated(L, 1, "'texture' uniform variable name in shader code", API_CUSTOM, DEPRECATED_NO_REPLACEMENT, "");
 		if (!shader->getUnsetVertexInputLocationsString().empty())
@@ -1640,7 +1676,7 @@ int w_newComputeShader(lua_State* L)
 	{
 		Shader *shader = instance()->newComputeShader(stages[0], options);
 		if (shader->isUsingDeprecatedTextureFunctions())
-			luax_markdeprecated(L, 1, "texture2D() or textureCube() function calls in shader code", API_CUSTOM, DEPRECATED_REPLACED, "texture() function calls");
+			luax_markdeprecated(L, 1, "texture2D() or texture3D() or textureCube() function calls in shader code", API_CUSTOM, DEPRECATED_REPLACED, "texture() function calls");
 		if (shader->isUsingDeprecatedTextureUniform())
 			luax_markdeprecated(L, 1, "'texture' uniform variable name in shader code", API_CUSTOM, DEPRECATED_NO_REPLACEMENT, "");
 		if (!shader->getUnsetVertexInputLocationsString().empty())
@@ -1789,7 +1825,7 @@ static void luax_checkbufferformat(lua_State *L, int idx, const Buffer::Settings
 		return;
 	}
 
-	bool requirelocation = (settings.usageFlags & BUFFERUSAGE_VERTEX) != 0;
+	bool requirelocation = (settings.usageFlags & BUFFERUSAGEFLAG_VERTEX) != 0;
 
 	luaL_checktype(L, idx, LUA_TTABLE);
 	int tablelen = luax_objlen(L, idx);
@@ -1855,7 +1891,7 @@ static Buffer *luax_newbuffer(lua_State *L, int idx, Buffer::Settings settings, 
 		tableoftables = lua_istable(L, -1);
 		lua_pop(L, 1);
 
-		if (!tableoftables)
+		if (!tableoftables && ncomponents > 0)
 		{
 			if (arraylength % ncomponents != 0)
 				luaL_error(L, "Array length in flat array variant of newBuffer must be a multiple of the total number of components (%d)", ncomponents);
@@ -1878,55 +1914,58 @@ static Buffer *luax_newbuffer(lua_State *L, int idx, Buffer::Settings settings, 
 
 	if (lua_istable(L, idx))
 	{
-		Buffer::Mapper mapper(*b);
-		char *data = (char *) mapper.data;
-		const auto &members = b->getDataMembers();
-		size_t stride = b->getArrayStride();
-
-		if (tableoftables)
+		luax_catchexcept(L, [&]()
 		{
-			for (size_t i = 0; i < arraylength; i++)
+			Buffer::Mapper mapper(*b);
+			char *data = (char *) mapper.data;
+			const auto &members = b->getDataMembers();
+			size_t stride = b->getArrayStride();
+
+			if (tableoftables)
 			{
-				// get arraydata[index]
-				lua_rawgeti(L, 2, i + 1);
-				luaL_checktype(L, -1, LUA_TTABLE);
-
-				// get arraydata[index][j]
-				for (int j = 1; j <= ncomponents; j++)
-					lua_rawgeti(L, -j, j);
-
-				int idx = -ncomponents;
-
-				for (const Buffer::DataMember &member : members)
+				for (size_t i = 0; i < arraylength; i++)
 				{
-					luax_writebufferdata(L, idx, member.decl.format, data + member.offset);
-					idx += member.info.components;
-				}
+					// get arraydata[index]
+					lua_rawgeti(L, 2, i + 1);
+					luaL_checktype(L, -1, LUA_TTABLE);
 
-				lua_pop(L, ncomponents + 1);
-				data += stride;
+					// get arraydata[index][j]
+					for (int j = 1; j <= ncomponents; j++)
+						lua_rawgeti(L, -j, j);
+
+					int idx = -ncomponents;
+
+					for (const Buffer::DataMember &member : members)
+					{
+						luax_writebufferdata(L, idx, member.decl.format, data + member.offset);
+						idx += member.info.components;
+					}
+
+					lua_pop(L, ncomponents + 1);
+					data += stride;
+				}
 			}
-		}
-		else // Flat array
-		{
-			for (size_t i = 0; i < arraylength; i++)
+			else // Flat array
 			{
-				// get arraydata[arrayindex * ncomponents + componentindex]
-				for (int componentindex = 1; componentindex <= ncomponents; componentindex++)
-					lua_rawgeti(L, 2, i * ncomponents + componentindex);
-
-				int idx = -ncomponents;
-
-				for (const Buffer::DataMember &member : members)
+				for (size_t i = 0; i < arraylength; i++)
 				{
-					luax_writebufferdata(L, idx, member.decl.format, data + member.offset);
-					idx += member.info.components;
-				}
+					// get arraydata[arrayindex * ncomponents + componentindex]
+					for (int componentindex = 1; componentindex <= ncomponents; componentindex++)
+						lua_rawgeti(L, 2, i * ncomponents + componentindex);
 
-				lua_pop(L, ncomponents);
-				data += stride;
+					int idx = -ncomponents;
+
+					for (const Buffer::DataMember &member : members)
+					{
+						luax_writebufferdata(L, idx, member.decl.format, data + member.offset);
+						idx += member.info.components;
+					}
+
+					lua_pop(L, ncomponents);
+					data += stride;
+				}
 			}
-		}
+		});
 	}
 
 	return b;
@@ -1934,6 +1973,8 @@ static Buffer *luax_newbuffer(lua_State *L, int idx, Buffer::Settings settings, 
 
 int w_newBuffer(lua_State *L)
 {
+	luax_checkgraphicscreated(L);
+
 	Buffer::Settings settings(0, BUFFERDATAUSAGE_DYNAMIC);
 
 	luaL_checktype(L, 3, LUA_TTABLE);
@@ -2176,7 +2217,7 @@ static Mesh *newCustomMesh(lua_State *L)
 		}
 
 		t->setVertexDataModified(0, stride * numvertices);
-		t->flush();
+		luax_catchexcept(L, [&]() { t->flush(); });
 	}
 
 	if (t->getVertexBuffer() != nullptr)
@@ -2395,6 +2436,8 @@ int w_readbackTexture(lua_State *L)
 	int slice = 0;
 	if (t->getTextureType() != TEXTURE_2D)
 		slice = (int) luaL_checkinteger(L, 2) - 1;
+	else if (!lua_isnoneornil(L, 2) && lua_type(L, 2) != LUA_TNUMBER)
+		luaL_argerror(L, 2, "number or nil expected");
 
 	int mipmap = (int) luaL_optinteger(L, 3, 1) - 1;
 
@@ -2433,6 +2476,8 @@ int w_readbackTextureAsync(lua_State *L)
 	int slice = 0;
 	if (t->getTextureType() != TEXTURE_2D)
 		slice = (int) luaL_checkinteger(L, 2) - 1;
+	else if (!lua_isnoneornil(L, 2) && lua_type(L, 2) != LUA_TNUMBER)
+		luaL_argerror(L, 2, "number or nil expected");
 
 	int mipmap = (int) luaL_optinteger(L, 3, 1) - 1;
 
@@ -2585,7 +2630,7 @@ int w_setColorMask(lua_State *L)
 		mask.a = luax_checkboolean(L, 4);
 	}
 
-	instance()->setColorMask(mask);
+	luax_catchexcept(L, [&]() { instance()->setColorMask(mask); });
 
 	return 0;
 }
@@ -2847,7 +2892,7 @@ int w_getLineJoin(lua_State *L)
 int w_setPointSize(lua_State *L)
 {
 	float size = (float)luaL_checknumber(L, 1);
-	instance()->setPointSize(size);
+	luax_catchexcept(L, [&]() { instance()->setPointSize(size); });
 	return 0;
 }
 
@@ -2937,7 +2982,7 @@ int w_getFrontFaceWinding(lua_State *L)
 
 int w_setWireframe(lua_State *L)
 {
-	instance()->setWireframe(luax_checkboolean(L, 1));
+	luax_catchexcept(L, [&]() { instance()->setWireframe(luax_checkboolean(L, 1)); });
 	return 0;
 }
 
@@ -2956,7 +3001,7 @@ int w_setShader(lua_State *L)
 	}
 
 	Shader *shader = luax_checkshader(L, 1);
-	instance()->setShader(shader);
+	luax_catchexcept(L, [&]() { instance()->setShader(shader); });
 	return 0;
 }
 
@@ -3001,6 +3046,7 @@ int w_getTextureFormats(lua_State *L)
 
 	bool rt = luax_checkboolflag(L, 1, Texture::getConstant(Texture::SETTING_RENDER_TARGET));
 	bool computewrite = luax_boolflag(L, 1, Texture::getConstant(Texture::SETTING_COMPUTE_WRITE), false);
+	bool shaderatomics = luax_boolflag(L, 1, "shaderatomics", false);
 
 	OptionalBool readable;
 	lua_getfield(L, 1, Texture::getConstant(Texture::SETTING_READABLE));
@@ -3028,6 +3074,8 @@ int w_getTextureFormats(lua_State *L)
 			usage |= PIXELFORMATUSAGEFLAGS_SAMPLE;
 		if (computewrite)
 			usage |= PIXELFORMATUSAGEFLAGS_COMPUTEWRITE;
+		if (shaderatomics)
+			usage |= PIXELFORMATUSAGEFLAGS_SHADERATOMICS;
 
 		luax_pushboolean(L, instance()->isPixelFormatSupported(format, (PixelFormatUsageFlags) usage));
 		lua_setfield(L, -2, name);
@@ -3868,9 +3916,9 @@ int w_copyTextureToBuffer(lua_State *L)
 	return 0;
 }
 
-int w_flushBatch(lua_State *)
+int w_flushBatch(lua_State *L)
 {
-	instance()->flushBatchedDraws();
+	luax_catchexcept(L, [&]() { instance()->flushBatchedDraws(); });
 	return 0;
 }
 
@@ -4005,13 +4053,13 @@ int w_setProjection(lua_State *L)
 	float elements[16];
 	love::math::luax_checkmatrix(L, idx, layout, elements);
 
-	instance()->setProjection(Matrix4(elements));
+	luax_catchexcept(L, [&]() { instance()->setProjection(Matrix4(elements)); });
 	return 0;
 }
 
-int w_resetProjection(lua_State */*L*/)
+int w_resetProjection(lua_State *L)
 {
-	instance()->resetProjection();
+	luax_catchexcept(L, [&]() { instance()->resetProjection(); });
 	return 0;
 }
 
@@ -4202,13 +4250,8 @@ static const lua_CFunction types[] =
 
 extern "C" int luaopen_love_graphics(lua_State *L)
 {
-	Graphics *instance = Graphics::createInstance();
-
-	if (instance == nullptr)
-	{
-		printf("Cannot create graphics: no supported renderer on this system.\n");
-		return luaL_error(L, "Cannot create graphics: no supported renderer on this system.");
-	}
+	Graphics *instance = nullptr;
+	luax_catchexcept(L, [&]() { instance = Graphics::createInstance(); });
 
 	WrappedModule w;
 	w.module = instance;

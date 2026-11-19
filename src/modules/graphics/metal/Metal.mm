@@ -137,16 +137,12 @@ Metal::PixelFormatDesc Metal::convertPixelFormat(id<MTLDevice> device, PixelForm
 		break;
 
 	case PIXELFORMAT_LA8_UNORM:
-		// Only supported on some systems.
-		if (@available(macOS 10.15, iOS 13, *))
-		{
-			mtlformat = MTLPixelFormatRG8Unorm;
-			desc.swizzled = true;
-			desc.swizzle.red = MTLTextureSwizzleRed;
-			desc.swizzle.green = MTLTextureSwizzleRed;
-			desc.swizzle.blue = MTLTextureSwizzleRed;
-			desc.swizzle.alpha = MTLTextureSwizzleGreen;
-		}
+		mtlformat = MTLPixelFormatRG8Unorm;
+		desc.swizzled = true;
+		desc.swizzle.red = MTLTextureSwizzleRed;
+		desc.swizzle.green = MTLTextureSwizzleRed;
+		desc.swizzle.blue = MTLTextureSwizzleRed;
+		desc.swizzle.alpha = MTLTextureSwizzleGreen;
 		break;
 
 	case PIXELFORMAT_RGBA4_UNORM:
@@ -163,6 +159,9 @@ Metal::PixelFormatDesc Metal::convertPixelFormat(id<MTLDevice> device, PixelForm
 		break;
 	case PIXELFORMAT_RGB10A2_UNORM:
 		mtlformat = MTLPixelFormatRGB10A2Unorm;
+		break;
+	case PIXELFORMAT_RGB10A2_UINT:
+		mtlformat = MTLPixelFormatRGB10A2Uint;
 		break;
 	case PIXELFORMAT_RG11B10_FLOAT:
 		mtlformat = MTLPixelFormatRG11B10Float;

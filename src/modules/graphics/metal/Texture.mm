@@ -61,12 +61,7 @@ Texture::Texture(love::graphics::Graphics *gfxbase, id<MTLDevice> device, const 
 	auto formatdesc = Metal::convertPixelFormat(device, format);
 	desc.pixelFormat = formatdesc.format;
 	if (formatdesc.swizzled)
-	{
-		// Swizzled formats are already only used on supported systems, this
-		// just silences a compiler warning about it.
-		if (@available(macOS 10.15, iOS 13, *))
-			desc.swizzle = formatdesc.swizzle;
-	}
+		desc.swizzle = formatdesc.swizzle;
 
 	desc.storageMode = MTLStorageModePrivate;
 
@@ -84,6 +79,17 @@ Texture::Texture(love::graphics::Graphics *gfxbase, id<MTLDevice> device, const 
 			desc.usage |= MTLTextureUsagePixelFormatView;
 			break;
 		}
+	}
+
+	if (@available(macOS 14.0, iOS 17.0, *))
+	{
+		// FIXME: This is imperfect, r32i views of r32f source textures aren't covered
+		// (and don't appear to be supported in atomic ops in general, on Metal).
+		// Note: This disables lossless compression, but according to the docs
+		// MTLTextureUsageShaderWrite does as well, so it would already be off in this
+		// situation.
+		if (computeWrite && gfx->isPixelFormatSupported(format, PIXELFORMATUSAGEFLAGS_SHADERATOMICS))
+			desc.usage |= MTLTextureUsageShaderAtomic;
 	}
 
 	texture = [device newTextureWithDescriptor:desc];
@@ -128,7 +134,6 @@ Texture::Texture(love::graphics::Graphics *gfxbase, id<MTLDevice> device, const 
 
 	bool shouldgeneratemips = false;
 
-	std::vector<uint8> emptydata;
 	MTLRenderPassDescriptor *passdesc = nil;
 
 	// Initialize texture.
@@ -146,15 +151,6 @@ Texture::Texture(love::graphics::Graphics *gfxbase, id<MTLDevice> device, const 
 				// Handled in the generateMipmaps call below.
 				shouldgeneratemips = true;
 				continue;
-			}
-			else if (getMSAA() <= 1 && !isPixelFormatDepthStencil(format) && !isPixelFormatCompressed(format))
-			{
-				// Initialize to transparent black.
-				if (emptydata.empty())
-					emptydata.resize(getPixelFormatSliceSize(format, w, h));
-
-				Rect r = {0, 0, getPixelWidth(mip), getPixelHeight(mip)};
-				uploadByteData(emptydata.data(), emptydata.size(), mip, slice, r);
 			}
 			else if (isRenderTarget())
 			{
@@ -201,6 +197,16 @@ Texture::Texture(love::graphics::Graphics *gfxbase, id<MTLDevice> device, const 
 				id<MTLRenderCommandEncoder> encoder = [cmd renderCommandEncoderWithDescriptor:passdesc];
 				[encoder endEncoding];
 			}
+			else if (getMSAA() <= 1 && !isPixelFormatDepthStencil(format) && !isPixelFormatCompressed(format))
+			{
+				// Initialize to transparent black.
+				size_t datasize = getPixelFormatSliceSize(format, w, h);
+				Rect r = {0, 0, getPixelWidth(mip), getPixelHeight(mip)};
+
+				// Special case: memset(0) if data is null.
+				// TODO: make this a more sensible part of the internal Texture API?
+				uploadByteData(nullptr, datasize, mip, slice, r);
+			}
 			else
 			{
 				// Shouldn't be possible to get here.
@@ -228,14 +234,11 @@ Texture::Texture(love::graphics::Graphics *gfx, id<MTLDevice> device, love::grap
 
 	if (formatdesc.swizzled)
 	{
-		if (@available(macOS 10.15, iOS 13, *))
-		{
-			texture = [basetex newTextureViewWithPixelFormat:formatdesc.format
-												 textureType:getMTLTextureType(texType, 1)
-													  levels:NSMakeRange(parentView.startMipmap, mipmapCount)
-													  slices:NSMakeRange(parentView.startLayer, slices)
-													 swizzle:formatdesc.swizzle];
-		}
+		texture = [basetex newTextureViewWithPixelFormat:formatdesc.format
+											 textureType:getMTLTextureType(texType, 1)
+												  levels:NSMakeRange(parentView.startMipmap, mipmapCount)
+												  slices:NSMakeRange(parentView.startLayer, slices)
+												 swizzle:formatdesc.swizzle];
 	}
 	else
 	{
@@ -264,9 +267,11 @@ Texture::~Texture()
 void Texture::uploadByteData(const void *data, size_t size, int level, int slice, const Rect &r)
 { @autoreleasepool {
 	auto gfx = Graphics::getInstance();
-	id<MTLBuffer> buffer = [gfx->device newBufferWithBytes:data
-													length:size
-												   options:MTLResourceStorageModeShared];
+
+	id<MTLBuffer> buffer = [gfx->device newBufferWithLength:size options:MTLResourceStorageModeShared];
+
+	if (data != nullptr)
+		memcpy(buffer.contents, data, size);
 
 	id<MTLBlitCommandEncoder> encoder = gfx->useBlitEncoder();
 
@@ -300,6 +305,11 @@ void Texture::uploadByteData(const void *data, size_t size, int level, int slice
 
 	// TODO: Verify this is correct for compressed formats at small sizes.
 	size_t sliceSize = getPixelFormatSliceSize(format, r.w, r.h);
+
+	// Special case: memset(0) if data is null.
+	// TODO: make this a more sensible part of the internal Texture API?
+	if (data == nullptr)
+		[encoder fillBuffer:buffer range:NSMakeRange(0, size) value:0];
 
 	[encoder copyFromBuffer:buffer
 			   sourceOffset:0

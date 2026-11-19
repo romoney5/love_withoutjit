@@ -909,10 +909,16 @@ void OpenGL::framebufferTexture(GLenum attachment, TextureType texType, GLuint t
 		glFramebufferTexture3D(GL_FRAMEBUFFER, attachment, textarget, texture, level, layer);
 		break;
 	case TEXTURE_2D_ARRAY:
-		glFramebufferTextureLayer(GL_FRAMEBUFFER, attachment, texture, level, layer);
+		if (layer == FRAMEBUFFER_ALL_LAYERS)
+			glFramebufferTexture(GL_FRAMEBUFFER, attachment, texture, level);
+		else
+			glFramebufferTextureLayer(GL_FRAMEBUFFER, attachment, texture, level, layer);
 		break;
 	case TEXTURE_CUBE:
-		glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, texture, level);
+		if (face == FRAMEBUFFER_ALL_FACES)
+			glFramebufferTexture(GL_FRAMEBUFFER, attachment, texture, level);
+		else
+			glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, texture, level);
 		break;
 	default:
 		break;
@@ -1632,6 +1638,11 @@ OpenGL::TextureFormat OpenGL::convertPixelFormat(PixelFormat pixelformat)
 		f.externalformat = GL_RGBA;
 		f.type = GL_UNSIGNED_INT_2_10_10_10_REV;
 		break;
+	case PIXELFORMAT_RGB10A2_UINT:
+		f.internalformat = GL_RGB10_A2UI;
+		f.externalformat = GL_RGBA_INTEGER;
+		f.type = GL_UNSIGNED_INT_2_10_10_10_REV;
+		break;
 	case PIXELFORMAT_RG11B10_FLOAT:
 		f.internalformat = GL_R11F_G11F_B10F;
 		f.externalformat = GL_RGB;
@@ -1983,7 +1994,13 @@ uint32 OpenGL::getPixelFormatUsageFlags(PixelFormat pixelformat)
 	case PIXELFORMAT_RG32_UINT:
 	case PIXELFORMAT_RGBA32_INT:
 	case PIXELFORMAT_RGBA32_UINT:
+	case PIXELFORMAT_RGB10A2_UINT:
 		flags |= PIXELFORMATUSAGEFLAGS_SAMPLE | PIXELFORMATUSAGEFLAGS_RENDERTARGET;
+		if (pixelformat == PIXELFORMAT_R32_INT || pixelformat == PIXELFORMAT_R32_UINT)
+		{
+			if (GLAD_VERSION_4_3 || GLAD_ES_VERSION_3_2)
+				flags |= PIXELFORMATUSAGEFLAGS_SHADERATOMICS;
+		}
 		if (GLAD_VERSION_4_3)
 			flags |= computewrite;
 		if (GLAD_ES_VERSION_3_1)

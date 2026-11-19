@@ -151,14 +151,17 @@ float Texel(sampler2DArrayShadow s, highp vec4 c) { return texture(s, c); }
 uniform mediump float deprecatedTextureCall;
 
 vec4 texture2DDeprecated(sampler2D s, vec2 c) { return texture(s, c) + deprecatedTextureCall; }
+vec4 texture3DDeprecated(sampler3D s, vec3 c) { return texture(s, c) + deprecatedTextureCall; }
 vec4 textureCubeDeprecated(samplerCube s, vec3 c) { return texture(s, c) + deprecatedTextureCall; }
 
 #ifdef PIXEL
 vec4 texture2DDeprecated(sampler2D s, vec2 c, float b) { return texture(s, c, b) + deprecatedTextureCall; }
+vec4 texture3DDeprecated(sampler3D s, vec3 c, float b) { return texture(s, c, b) + deprecatedTextureCall; }
 vec4 textureCubeDeprecated(samplerCube s, vec3 c, float b) { return texture(s, c, b) + deprecatedTextureCall; }
 #endif
 
 #define texture2D texture2DDeprecated
+#define texture3D texture3DDeprecated
 #define textureCube textureCubeDeprecated
 
 float gammaToLinearPrecise(float c) {
@@ -617,6 +620,9 @@ std::string Shader::createShaderStageCode(Graphics *gfx, ShaderStageType stage, 
 
 	if (gfx->isUsingNoTextureCubeShadowBiasHack())
 		ss << "#define LOVE_NO_TEXTURECUBESHADOWBIAS_HACK 1\n";
+	
+	if (gfx->getCapabilities().features[Graphics::FEATURE_SHADER_LAYER] && stage == SHADERSTAGE_VERTEX)
+		ss << "#extension GL_ARB_shader_viewport_layer_array : enable\n";
 
 	for (const auto &def : options.defines)
 		ss << "#define " + def.first + " " + def.second + "\n";
@@ -647,7 +653,7 @@ Shader::Shader(StrongRef<ShaderStage> _stages[], const CompileOptions &options)
 	, debugName(options.debugName)
 {
 	std::string err;
-	if (!validateInternal(_stages, err, reflection))
+	if (!validateInternal(_stages, err, reflection, options))
 		throw love::Exception("%s", err.c_str());
 
 	std::vector<std::string> unsetVertexInputLocations;
@@ -955,7 +961,7 @@ bool Shader::isResourceBaseTypeCompatible(DataBaseType a, DataBaseType b)
 	return false;
 }
 
-void Shader::validateDrawState(PrimitiveType primtype, Texture *maintex) const
+void Shader::validateDrawState(Graphics *gfx, PrimitiveType primtype, Texture *maintex) const
 {
 	if ((primtype == PRIMITIVE_POINTS) != reflection.usesPointSize)
 	{
@@ -963,6 +969,26 @@ void Shader::validateDrawState(PrimitiveType primtype, Texture *maintex) const
 			throw love::Exception("The active shader can only be used to draw points.");
 		else
 			throw love::Exception("The gl_PointSize variable must be set in a vertex shader when drawing points.");
+	}
+
+	auto rts = gfx->getRenderTargets();
+	bool shaderUsesLayerRendering = reflection.usesLayer;
+	bool renderTargetUsesLayerRendering = rts.shaderLayer;
+	if (shaderUsesLayerRendering != renderTargetUsesLayerRendering)
+		throw love::Exception("Both the gl_Layer variable must be written to in the vertex shader and the field 'shaderlayer' must be true when binding a canvas to use layer rendering.");
+	
+	for (int i = 0; i < rts.colors.size(); ++i)
+	{
+		Texture *attachment = rts.colors.at(i).texture;
+		int attachmentPixelComponentCount = getPixelFormatColorComponents(attachment->getPixelFormat());
+
+		auto iter = reflection.fragmentOutputs.find(i);
+		if (iter == reflection.fragmentOutputs.end())
+			throw love::Exception("Missing pixel shader output for canvas at index %d", i + 1);
+		
+		const FragmentOutput& output = iter->second;
+		if (output.componentCount < attachmentPixelComponentCount)
+			throw love::Exception("Pixel shader output '%s' has only writes %d components but canvas at index %d has %d components", output.name.c_str(), output.componentCount, i + 1, attachmentPixelComponentCount);
 	}
 
 	if (maintex == nullptr)
@@ -1026,10 +1052,10 @@ bool Shader::isUsingDeprecatedTextureUniform() const
 	return it != reflection.allUniforms.end() && it->second->stageMask != 0;
 }
 
-bool Shader::validate(StrongRef<ShaderStage> stages[], std::string& err)
+bool Shader::validate(StrongRef<ShaderStage> stages[], std::string& err, const CompileOptions &options)
 {
 	Reflection reflection;
-	return validateInternal(stages, err, reflection);
+	return validateInternal(stages, err, reflection, options);
 }
 
 static DataBaseType getBaseType(glslang::TBasicType basictype)
@@ -1243,19 +1269,28 @@ static bool AddFieldsToFormat(std::vector<Buffer::DataDeclaration> &format, int 
 	return true;
 }
 
-bool Shader::validateInternal(StrongRef<ShaderStage> stages[], std::string &err, Reflection &reflection)
+bool Shader::validateInternal(StrongRef<ShaderStage> stages[], std::string &err, Reflection &reflection, const CompileOptions &options)
 {
 	glslang::TProgram program;
 
 	for (int i = 0; i < SHADERSTAGE_MAX_ENUM; i++)
 	{
 		if (stages[i] != nullptr)
+		{
+			stages[i]->getGLSLangValidationShader()->setAutoMapLocations(true);
 			program.addShader(stages[i]->getGLSLangValidationShader());
+		}
 	}
 
 	if (!program.link((EShMessages)(EShMsgValidateCrossStageIO | EshMsgOverlappingLocations)))
 	{
 		err = "Cannot compile shader:\n\n" + std::string(program.getInfoLog()) + "\n" + std::string(program.getInfoDebugLog());
+		return false;
+	}
+
+	if (!program.mapIO())
+	{
+		err = "Could not map shader input/outputs.";
 		return false;
 	}
 
@@ -1270,6 +1305,7 @@ bool Shader::validateInternal(StrongRef<ShaderStage> stages[], std::string &err,
 	{
 		// NOTE: this doesn't check whether the use affects final output...
 		reflection.usesPointSize = vertintermediate->inIoAccessed("gl_PointSize");
+		reflection.usesLayer = vertintermediate->inIoAccessed("gl_Layer");
 	}
 
 	if (stages[SHADERSTAGE_COMPUTE] != nullptr)
@@ -1301,9 +1337,42 @@ bool Shader::validateInternal(StrongRef<ShaderStage> stages[], std::string &err,
 		reflection.vertexInputs[info.name] = location;
 	}
 
+	for (int i = 0; i < program.getNumPipeOutputs(); ++i)
+	{
+		const glslang::TObjectReflection &info = program.getPipeOutput(i);
+
+		if (info.name.rfind("gl_", 0) == 0)
+			continue;
+
+		int location = info.layoutLocation();
+		if (location == glslang::TQualifier::layoutLocationEnd)
+		{
+			err = "Pixel output " + info.name + " does not have 'location' layout qualifier in pixel shader code";
+			return false;
+		}
+
+		for (int j = 0; j < info.size; ++j)
+		{
+			FragmentOutput output;
+			output.name = info.name;
+			output.location = location + j;
+			output.componentCount = info.getType()->getVectorSize();
+
+			auto iter = reflection.fragmentOutputs.find(output.location);
+			if (iter != reflection.fragmentOutputs.end())
+			{
+				err = "Pixel output " + info.name + " has same 'location' layout qualifier as " + iter->second.name;
+				return false;
+			}
+
+			reflection.fragmentOutputs[output.location] = output;
+		}
+	}
+
 	reflection.textureCount = 0;
 	reflection.bufferCount = 0;
 
+	auto &capabilities = Module::getInstance<Graphics>(Module::M_GRAPHICS)->getCapabilities();
 	for (int i = 0; i < program.getNumUniformVariables(); i++)
 	{
 		const glslang::TObjectReflection &info = program.getUniform(i);
@@ -1346,9 +1415,21 @@ bool Shader::validateInternal(StrongRef<ShaderStage> stages[], std::string &err,
 		}
 		else if (type->isImage())
 		{
-			if ((info.stages & (~EShLangComputeMask)) != 0)
+			if ((info.stages & (~EShLangComputeMask)) != 0 && !options.features[FEATURE_WRITE])
 			{
-				err = "Shader validation error:\nStorage Texture uniform variables (image2D, etc) are only allowed in compute shaders.";
+				err = "Shader validation error:\nStorage Texture uniform variables (image2D, etc) are only allowed in compute shaders unless explicitly enabled.";
+				return false;
+			}
+
+			if ((!qualifiers.isReadOnly() || qualifiers.isWriteOnly()) && ((info.stages & (~EShLangFragmentMask)) != 0) && !capabilities.features[Graphics::FEATURE_PIXEL_WRITE])
+			{
+				err = "Shader validation error:\nPlatform does not have writable Storage Texture uniform variables (image2D, etc) capabilities in pixel shaders.";
+				return false;
+			}
+
+			if ((!qualifiers.isReadOnly() || qualifiers.isWriteOnly()) && ((info.stages & (~EShLangVertexMask)) != 0) && !capabilities.features[Graphics::FEATURE_VERTEX_WRITE])
+			{
+				err = "Shader validation error:\nPlatform does not have writable Storage Texture uniform variables (image2D, etc) capabilities in vertex shaders.";
 				return false;
 			}
 
@@ -1464,9 +1545,21 @@ bool Shader::validateInternal(StrongRef<ShaderStage> stages[], std::string &err,
 		{
 			const glslang::TQualifier &qualifiers = type->getQualifier();
 
-			if ((!qualifiers.isReadOnly() || qualifiers.isWriteOnly()) && ((info.stages & (~EShLangComputeMask)) != 0))
+			if ((!qualifiers.isReadOnly() || qualifiers.isWriteOnly()) && ((info.stages & (~EShLangComputeMask)) != 0) && !options.features[FEATURE_WRITE])
 			{
-				err = "Shader validation error:\nStorage Buffer block '" + info.name + "' must be marked as readonly in vertex and pixel shaders.";
+				err = "Shader validation error:\nStorage Buffer block '" + info.name + "' must be marked as readonly in vertex and pixel shaders unless explicitly enabled.";
+				return false;
+			}
+			
+			if ((!qualifiers.isReadOnly() || qualifiers.isWriteOnly()) && ((info.stages & (~EShLangFragmentMask)) != 0) && !capabilities.features[Graphics::FEATURE_PIXEL_WRITE])
+			{
+				err = "Shader validation error:\nPlatform does not have writable Storage Buffer blocks capabilities in pixel shaders.";
+				return false;
+			}
+
+			if ((!qualifiers.isReadOnly() || qualifiers.isWriteOnly()) && ((info.stages & (~EShLangVertexMask)) != 0) && !capabilities.features[Graphics::FEATURE_VERTEX_WRITE])
+			{
+				err = "Shader validation error:\nPlatform does not have writable Storage Buffer blocks capabilities in vertex shaders.";
 				return false;
 			}
 
@@ -1698,6 +1791,14 @@ std::string Shader::canonicaliizeUniformName(const std::string &n)
 	return name;
 }
 
+size_t Shader::getUniformDataSizePacked(const UniformInfo &u)
+{
+	if (u.baseType == UNIFORM_MATRIX)
+		return sizeof(uint32) * u.matrix.rows * u.matrix.columns * u.count;
+	else
+		return sizeof(uint32) * u.components * u.count;
+}
+
 void Shader::handleUnknownUniformName(const char */*name*/)
 {
 	// TODO: do something here?
@@ -1714,7 +1815,7 @@ void Shader::copyToUniformBuffer(const UniformInfo *info, const void *src, void 
 	// Assuming std140 packing rules, the source data can only be direct-copied
 	// to the uniform buffer in certain cases because it's tightly packed whereas
 	// the buffer's data isn't.
-	if (elementsize * info->count == info->dataSize || (count == 1 && info->baseType != UNIFORM_MATRIX))
+	if (elementsize * info->count == info->dataSizeAllocated || (count == 1 && info->baseType != UNIFORM_MATRIX))
 	{
 		memcpy(dst, src, elementsize * count);
 	}
@@ -1860,6 +1961,12 @@ bool Shader::getConstant(BuiltinUniform in, const char *&out)
 {
 	return builtinNames.find(in, out);
 }
+
+STRINGMAP_CLASS_BEGIN(Shader, Shader::Feature, Shader::FEATURE_MAX_ENUM, feature)
+{
+	{ "write", Shader::FEATURE_WRITE },
+}
+STRINGMAP_CLASS_END(Shader, Shader::Feature, Shader::FEATURE_MAX_ENUM, feature)
 
 } // graphics
 } // love

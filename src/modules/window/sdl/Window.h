@@ -62,11 +62,11 @@ public:
 
 	DisplayOrientation getDisplayOrientation(int displayindex) const override;
 
-	std::vector<WindowSize> getFullscreenSizes(int displayindex) const override;
+	std::vector<DisplayMode> getFullscreenModes(int displayindex) const override;
 
 	void getDesktopDimensions(int displayindex, int &width, int &height) const override;
 
-	void setPosition(int x, int y, int displayindex) override;
+	void setPosition(int x, int y, int displayindex, bool waitForSync) override;
 	void getPosition(int &x, int &y, int &displayindex) override;
 
 	Rect getSafeArea() const override;
@@ -187,7 +187,6 @@ private:
 
 	graphics::Renderer windowRenderer = graphics::RENDERER_NONE;
 
-	bool displayedWindowError;
 	ContextAttribs contextAttribs;
 
 	StrongRef<graphics::Graphics> graphics;
